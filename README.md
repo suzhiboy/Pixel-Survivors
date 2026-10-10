@@ -70,7 +70,9 @@
 
 仓库里有一个 `.nojekyll` 空文件，用来关掉 GitHub Pages 的 Jekyll 处理 —— 省得它自作主张地改文件。
 
-> **记得改链接预览图。** `index.html` 头部有两条 `og:image`，现在填的是占位域名。把 `https://example.github.io/pixel-survivors/cover.png` 换成你自己的 Pages 地址，发到微信 / QQ / Discord / X 的时候才会有预览卡片。社交平台不会去解析相对路径，这里必须写完整网址。
+> **链接预览图已经配好了。** `index.html` 头部的两条 `og:image` 指向 `raw.githubusercontent.com` 上本仓库的 `cover.png`。这里有两个坑：必须是**完整网址**（社交平台不解析相对路径），而且必须指向**图片本身** —— GitHub 网页上那个 `/blob/` 链接返回的是 HTML，抓下来会当成坏图。
+>
+> 想改走 GitHub Pages 的话（`https://suzhiboy.github.io/Pixel-Survivors/cover.png`），开启 Pages 后把两处域名换掉即可。国内分享到微信 / QQ 如果预览图不显示，可以换成 jsDelivr：`https://cdn.jsdelivr.net/gh/suzhiboy/Pixel-Survivors@main/cover.png`（在国内有节点）。
 
 ### 方式三：itch.io
 

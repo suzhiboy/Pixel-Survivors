@@ -65,7 +65,9 @@ Same for sharing — it's one file, so WeChat / QQ / email all work. **No intern
 
 A `.nojekyll` file is included to disable GitHub Pages' Jekyll processing.
 
-> **Update the link preview image.** The `<head>` of `index.html` has two `og:image` tags pointing at a placeholder domain. Replace `https://example.github.io/pixel-survivors/cover.png` with your own Pages URL so link previews work when the game is shared on social platforms. They will not resolve relative paths — it has to be an absolute URL.
+> **The link preview image is already wired up.** The two `og:image` tags in `index.html`'s `<head>` point at `cover.png` in this repo, served from `raw.githubusercontent.com`. Two things to watch: it must be an **absolute URL** (social platforms won't resolve relative paths), and it must point at the **image itself** — GitHub's `/blob/` page URL returns HTML and gets fetched as a broken image.
+>
+> To serve it from GitHub Pages instead (`https://suzhiboy.github.io/Pixel-Survivors/cover.png`), enable Pages and swap the domain in both tags.
 
 ### Option 3: itch.io
 
