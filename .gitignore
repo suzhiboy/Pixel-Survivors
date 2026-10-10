@@ -1,0 +1,17 @@
+# 开发过程中的回滚点，不进仓库
+.pre-*.bak.html
+index.backup.html
+*.bak
+*.bak.html
+
+# 编辑器和系统
+.workbuddy/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件
+*.tmp
+*.log
