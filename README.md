@@ -2,7 +2,7 @@
 
 一个**单文件**的像素风幸存者类（roguelite / horde survival）游戏。打开网页就能玩，不用安装、不用构建、没有任何外部依赖 —— `index.html` 双击就能跑。
 
-**[▶ 在线试玩](https://example.github.io/pixel-survivors/)** ← 部署后把这里换成你自己的地址
+**[▶ 在线试玩](https://example.github.io/pixel-survivors/)** （网页版开发中）
 
 ![封面](cover.png)
 
