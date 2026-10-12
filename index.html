@@ -196,6 +196,33 @@
     padding:16px; overflow:auto; z-index:10;
   }
   .panel.on{ display:flex; animation:fadeIn .16s ease-out; }
+  /* 升级选项收在右侧，留出主要战斗区域；卡片外仍可触屏移动。 */
+  .panel.livePick{
+    pointer-events:none; align-items:center; justify-content:flex-end;
+    padding:10px clamp(8px,2vw,24px); overflow:hidden;
+    background:transparent; -webkit-backdrop-filter:none; backdrop-filter:none;
+  }
+  .panel.livePick .box{
+    pointer-events:auto; width:min(340px,48vw); max-width:min(340px,48vw); max-height:calc(100dvh - 20px);
+    overflow-y:auto; margin:0; padding:8px 10px 9px;
+    background:rgba(15,11,28,.48); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+    box-shadow:inset 0 0 0 1px rgba(107,87,184,.68), inset 0 0 0 4px rgba(36,28,68,.38),
+      0 0 0 2px rgba(6,4,13,.56), 0 10px 28px rgba(0,0,0,.28), 0 0 30px rgba(110,80,220,.08);
+  }
+  .panel.livePick h2{ font-size:16px; margin-bottom:6px; }
+  .panel.livePick #cards{ flex-direction:column; gap:6px; margin:4px 0 8px; }
+  .panel.livePick .card{
+    width:100%; min-height:0; padding:7px 8px 22px 50px; text-align:left;
+    background:linear-gradient(180deg,rgba(30,24,57,.64),rgba(20,16,42,.58) 60%,rgba(18,13,36,.58));
+  }
+  .panel.livePick .card .tag{ left:auto; right:5px; top:4px; font-size:8px; }
+  .panel.livePick .card .ico{ position:absolute; left:8px; top:50%; width:32px; height:32px; margin:0; transform:translateY(-50%); font-size:17px; }
+  .panel.livePick .card .nm{ font-size:13px; letter-spacing:1px; margin:0 42px 2px 0; }
+  .panel.livePick .card .ds{ min-height:0; font-size:10px; line-height:1.35; }
+  .panel.livePick .card .cost{ min-height:0; margin-top:3px; font-size:9px; line-height:1.3; }
+  .panel.livePick .card .cost em{ font-size:8px; }
+  .panel.livePick .card .kb{ position:absolute; right:7px; bottom:5px; margin:0; padding:0; border:0; font-size:9px; }
+  .panel.livePick .sub{ font-size:10px !important; line-height:1.4; }
   @keyframes fadeIn{ from{ opacity:0 } to{ opacity:1 } }
 
   .box{
@@ -749,7 +776,7 @@
   <div class="box">
     <h2 id="luTitle">升级！选择一项强化</h2>
     <div id="cards"></div>
-    <div class="sub" style="margin:0;font-size:12px">点击卡片，或按 <em>1</em> / <em>2</em> / <em>3</em></div>
+    <div class="sub" style="margin:0;font-size:12px">战斗不会暂停，可继续移动躲避 · 点击卡片，或按 <em>1</em> / <em>2</em> / <em>3</em></div>
   </div>
 </div>
 
@@ -1951,6 +1978,7 @@
       (got.length ? '<b style="color:#8affd6">新解锁角色：' + got.join("、") + "</b><br>" : "") + bestBoxHTML();
     // 结算面板要压在升级面板之上：双人时最后一个人倒下可能正好卡在选卡那一帧
     show("levelup", false);
+    document.getElementById("levelup").classList.remove("livePick");
     show("dead", true);
   }
   function die() { endRun("dead"); }
@@ -3228,6 +3256,7 @@
       box.appendChild(el);
     });
     show("levelup", true);
+    document.getElementById("levelup").classList.add("livePick");
   }
 
   function chooseUpgrade(i) {
@@ -3240,6 +3269,7 @@
       if (o.key === "hp") p.hp = Math.min(p.maxHp, p.hp + 22);
     } else p.hp = Math.min(p.maxHp, p.hp + 40);
     show("levelup", false);
+    document.getElementById("levelup").classList.remove("livePick");
     addPart(p.x, p.y - 8, "#ffd166", 26, 80, 0.7);
     refreshGear();
     if (luQueue.length) { nextPick(); return; }      // 队友还没选，接着开下一张
@@ -4824,7 +4854,7 @@
     if (dt > 0.05) dt = 0.05;
     dt60 = dt * 60;
     if (G.state !== "pause") updateMotes(dt);
-    if (G.state === "play") update(dt);
+    if (G.state === "play" || G.state === "levelup") update(dt);
     render();
     updateHUD();
     requestAnimationFrame(frame);
@@ -5568,7 +5598,7 @@
       '<li>键位按<em>物理位置</em>识别：AZERTY / QWERTZ / Dvorak 等非 QWERTY 布局，' +
       '按的还是同一片区域，不会错位</li>' +
       '<li>武器<em>全自动开火</em>，你只负责走位与取舍</li>' +
-      '<li>升级时点击卡片，或按 <em>1 / 2 / 3</em></li>' +
+      '<li>升级时点击卡片，或按 <em>1 / 2 / 3</em>；选择期间战斗继续，可以边移动边挑强化</li>' +
       '<li><em>P / ESC</em> 暂停 —— 暂停面板里可以直接<em>结算</em>（保留本局纪录与解锁）或<em>重新开始</em>；死亡后按 <em>R</em> 重开</li>' +
       '<li><em>TAB</em> 查看<em>角色数据面板</em>：当前所有结算后的属性、已持有的被动与其代价、' +
       '每把武器的期望伤害与间隔、以及地图/难度/被动的修正来源。面板打开时游戏冻结，再按 TAB 或 ESC 返回</li></ul></div>' +
@@ -5751,19 +5781,23 @@
     toSelect();
   }
 
+  let resumeLevelup = false;
   function togglePause() {
     const b = document.getElementById("bPause");
-    if (G.state === "play") {
+    if (G.state === "play" || G.state === "levelup") {
+      resumeLevelup = G.state === "levelup";
       G.state = "pause"; b.textContent = "▶"; b.title = "继续";
       disarmDanger();
+      show("levelup", false);
       document.getElementById("pzStat").innerHTML =
         "存活 <b>" + fmt(G.time) + "</b> · 等级 <b>" + G.level + "</b> · 击杀 <b>" + G.kills +
         "</b> · BOSS <b>" + G.bossKills + "</b>";
       show("pause", true);
     } else if (G.state === "pause") {
-      G.state = "play"; b.textContent = "❚❚"; b.title = "暂停";
+      G.state = resumeLevelup ? "levelup" : "play"; b.textContent = "❚❚"; b.title = "暂停";
       disarmDanger();
       show("pause", false);
+      show("levelup", resumeLevelup);
       last = performance.now();
     }
   }
