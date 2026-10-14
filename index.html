@@ -8,7 +8,7 @@
      所以双击本地文件就能玩，丢到 GitHub Pages / itch.io / 任意静态托管也照样跑。 -->
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNicgZmlsbD0nIzBmMGIxYycvPjxyZWN0IHg9JzIuNScgeT0nMi41JyB3aWR0aD0nMjcnIGhlaWdodD0nMjcnIHJ4PSc0LjUnIGZpbGw9J25vbmUnIHN0cm9rZT0nIzNhMmY2MCcgc3Ryb2tlLXdpZHRoPScyJy8+PHBhdGggZD0nTTE2IDUuNWwyLjkgNy42IDcuNiAyLjktNy42IDIuOS0yLjkgNy42LTIuOS03LjZMNS41IDE2bDcuNi0yLjl6JyBmaWxsPScjZmZjZjVjJy8+PGNpcmNsZSBjeD0nMTYnIGN5PScxNicgcj0nMi40JyBmaWxsPScjZmZmN2Q4Jy8+PC9zdmc+">
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNicgZmlsbD0nIzBmMGIxYycvPjxyZWN0IHg9JzIuNScgeT0nMi41JyB3aWR0aD0nMjcnIGhlaWdodD0nMjcnIHJ4PSc0LjUnIGZpbGw9J25vbmUnIHN0cm9rZT0nIzNhMmY2MCcgc3Ryb2tlLXdpZHRoPScyJy8+PHBhdGggZD0nTTE2IDUuNWwyLjkgNy42IDcuNiAyLjktNy42IDIuOS0yLjkgNy42LTIuOS03LjZMNS41IDE2bDcuNi0yLjl6JyBmaWxsPScjZmZjZjVjJy8+PGNpcmNsZSBjeD0nMTYnIGN5PScxNicgcj0nMi40JyBmaWxsPScjZmZmN2Q4Jy8+PC9zdmc+">
-<meta name="description" content="像素幸存者 —— 单文件像素风幸存者类游戏。21 种武器、18 种被动、6 张地图、5 档难度、8 个角色，支持本地双人同屏。打开网页即玩，无需安装。">
+<meta name="description" content="像素幸存者 —— 单文件像素风幸存者类游戏。21 种武器、20 种被动、6 张地图、5 档难度、8 个角色，支持本地双人同屏。打开网页即玩，无需安装。">
 <meta name="theme-color" content="#0b0819">
 <meta name="color-scheme" content="dark">
 <meta name="format-detection" content="telephone=no">
@@ -21,7 +21,7 @@
      社交平台抓下来会当成坏图。下面用的是 raw.githubusercontent.com 的直链。 -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="像素幸存者 · Pixel Survivors">
-<meta property="og:description" content="单文件像素风幸存者类游戏 · 21 武器 18 被动 6 地图 5 难度 8 角色 · 支持本地双人同屏">
+<meta property="og:description" content="单文件像素风幸存者类游戏 · 21 武器 20 被动 6 地图 5 难度 8 角色 · 支持本地双人同屏">
 <meta property="og:image" content="https://raw.githubusercontent.com/suzhiboy/Pixel-Survivors/main/cover.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -928,8 +928,8 @@
       unlock: { type: "boss", v: 1, txt: "击杀 1 个 BOSS" },
       desc: "肉到不讲道理。但追不上，也打不疼。" },
     { key: "berserk", name: "狂战士", icon: "狂", color: "#ff3b5c", weapon: "orbit",
-      up: "伤害 +35%，闪避 6%", down: "生命 -25%，受伤 +15%",
-      mods: { dmg: 0.35, hp: -0.25, taken: 0.15, dodge: 0.06 },
+      up: "伤害 +35%，闪避 6%", down: "生命 -25%",
+      mods: { dmg: 0.35, hp: -0.25, dodge: 0.06 },
       unlock: { type: "kills", v: 400, txt: "单局击杀 400" },
       desc: "玻璃大炮。要么秒了它，要么被它秒。" },
     { key: "gambler", name: "赌徒", icon: "赌", color: "#ff5ce0", weapon: "fire",
@@ -937,11 +937,14 @@
       mods: { crit: 0.18, critDmg: 1.20, hp: -0.20, dmg: -0.12, dodge: 0.14 },
       unlock: { type: "time", v: 420, txt: "存活 7 分钟" },
       desc: "把命运押在骰子上 —— 闪避也是赌的一环。" },
-    { key: "master", name: "武器大师", icon: "武", color: "#ffb347", weapon: "revolver",
-      up: "武器槽上限 10（初始 2，每 2 级 +1），攻击频率 +18%", down: "伤害 -15%，永久无法暴击",
-      mods: { dmg: -0.15, rate: 0.18, wslots: true, maxW: 10, nocrit: true },
+    // 武器大师重做：不再是"伤害 -15% / 永久无法暴击 / 攻速 +18%"，
+    // 而是"开局 10 个武器槽 + 每多带一件武器 伤害 +4% / 攻击频率 -1%"。
+    // 因为三条修正全部取消，这里挂 flat 让卡面按"无代价"渲染。
+    { key: "master", name: "武器大师", icon: "武", color: "#ffb347", weapon: "revolver", flat: true,
+      up: "开局就有 10 个武器槽；每多带 1 件武器 伤害 +4% / 攻击频率 -1%", down: "无代价",
+      mods: { wslots: true, maxW: 10, weaponDmg: 0.04, weaponRate: 0.01 },
       unlock: { type: "kills", v: 800, txt: "单局击杀 800" },
-      desc: "一个人就是一支军队。靠武器数量，不靠运气。" }
+      desc: "一个人就是一支军队。武器越多火力越猛 —— 只是扳机越来越难扣。" }
   ];
   const HERO_MAP = {};
   for (let i = 0; i < HEROES.length; i++) HERO_MAP[HEROES[i].key] = HEROES[i];
@@ -1055,7 +1058,7 @@
       stat: (l) => ({ dmg: 7 + l * 3.8, count: 4 + Math.floor(l * 0.55), radius: 32 + l * 3, spin: 3.8 + l * 0.18, bw: 8 + l * 0.6 }) },
     bolt: { name: "落雷", icon: "雷", color: "#8ad4ff", max: 8,
       desc: () => "随机劈向敌人，造成范围伤害",
-      stat: (l) => ({ cd: Math.max(0.85, 3.4 - l * 0.24), dmg: 14 + l * 7, count: 1 + Math.floor((l - 1) / 3), radius: 20 + l * 3 }) },
+      stat: (l) => ({ cd: Math.max(0.68, 2.85 - l * 0.22), dmg: 18 + l * 9, count: 1 + Math.floor((l - 1) / 3), radius: 20 + l * 3 }) },
     aura: { name: "腐蚀环", icon: "环", color: "#7bff9e", max: 8,
       desc: () => "周身持续腐蚀，灼烧靠近的敌人",
       stat: (l) => ({ cd: 0.4, dmg: 3 + l * 2.4, radius: 32 + l * 6 }) },
@@ -1080,13 +1083,16 @@
     boomerang: { name: "回旋镖", icon: "回", color: "#ffd98a", max: 8,
       desc: () => "飞出后折返，来回都能造成伤害",
       stat: (l) => ({ cd: Math.max(0.5, 1.35 - l * 0.1), dmg: 10 + l * 4.6, count: 1 + Math.floor((l - 1) / 4), dist: 140 + l * 20, speed: 260 }) },
+    // 十字光束：改成"常驻的旋转十字"（见 updateWeapons / updateBeams）。
+    // cd 这条字段已经不需要了 —— 它不再按节拍反复开火。
+    // rate = 同一个敌人被光束再命中的间隔，spin = 自转角速度（弧度/秒）
     beam: { name: "十字光束", icon: "光", color: "#ff6b8a", max: 8,
-      desc: () => "四方向射出穿透光束并缓缓旋转",
-      stat: (l) => ({ cd: Math.max(1.0, 2.6 - l * 0.2), dmg: 8 + l * 4.6, len: 120 + l * 15, wide: 6 + l, life: 0.45 }) },
+      desc: () => "四方向射出穿透光束，只要带着就一直缓慢旋转，持续切割挡在光束上的敌人",
+      stat: (l) => ({ dmg: 8 + l * 4.2, len: 120 + l * 15, wide: 6 + l,
+                      spin: 1.0 + l * 0.1, rate: Math.max(0.3, 0.52 - l * 0.02) }) },
     // —— 第二批：范围 / 召唤 / 控制 ——
     scythe: { name: "巨镰", icon: "镰", color: "#d8ffb0", max: 8,
       desc: () => "朝最近的敌人横扫一记巨镰，扇形内的敌人全部受创并被击退",
-      down: "携带时 攻击频率 -4.5%（每级 +12%）", carry: { rate: 0.045 },
       stat: (l) => ({ cd: Math.max(0.44, 1.5 - l * 0.12), dmg: 18 + l * 10, arc: 1.9 + l * 0.05, range: 40 + l * 3.6 }) },
     // —— 近战家族：贴脸输出，各带一手额外功能 ——
     katana: { name: "武士刀", icon: "斩", color: "#cfe4ff", max: 8,
@@ -1105,14 +1111,12 @@
       stat: (l) => ({ cd: Math.max(0.85, 2.6 - l * 0.2), dmg: 3 + l * 1.7, radius: 30 + l * 4.5, dur: 3.2 + l * 0.3, tick: 0.42, speed: 190 }) },
     singularity: { name: "奇点", icon: "奇", color: "#b48cff", max: 8,
       desc: () => "投出引力奇点，把周围敌人拽向中心后引爆",
-      down: "携带时 移动速度 -4%（每级 +12%）", carry: { spd: 0.04 },
       stat: (l) => ({ cd: Math.max(3.2, 7.0 - l * 0.42), dmg: 30 + l * 16, radius: 34 + l * 5, pull: 3.4 + l * 0.45, dur: 1.4, speed: 200 }) },
     orb: { name: "球状闪电", icon: "球", color: "#9fd8ff", max: 8,
       desc: () => "放出缓慢漂浮的电球，持续电击触到的敌人",
-      stat: (l) => ({ cd: Math.max(1.7, 3.6 - l * 0.23), dmg: 5 + l * 2.4, count: 1 + Math.floor(l / 3), speed: 62, radius: 11 + l * 1.2, dur: 3.6 + l * 0.3, rate: 0.4 }) },
+      stat: (l) => ({ cd: Math.max(1.35, 3.2 - l * 0.22), dmg: 8 + l * 3.4, count: 1 + Math.floor(l / 2), speed: 62, radius: 13 + l * 1.5, dur: 4.4 + l * 0.4, rate: 0.34 }) },
     sentry: { name: "哨戒炮台", icon: "炮", color: "#c8d4e8", max: 8,
       desc: () => "在脚下架起自动炮台，转身扫射附近的敌人（场上上限 6 座）",
-      down: "携带时 移动速度 -3.5%（每级 +12%）", carry: { spd: 0.035 },
       stat: (l) => ({ cd: Math.max(2.6, 6.4 - l * 0.45), dmg: 5 + l * 2.8, count: 1 + Math.floor(l / 3), cap: 2 + Math.floor(l / 2), range: 130 + l * 8, rate: Math.max(0.2, 0.62 - l * 0.03), dur: 12 + l * 1.4 }) },
     // —— 弹匣类武器：打空 6 发后进入较长换弹 ——
     shotgun: { name: "霰弹枪", icon: "霰", color: "#ffb347", max: 8, ammo: true,
@@ -1120,69 +1124,70 @@
       stat: (l) => ({ cd: 0.17, dmg: 6 + l * 3.0, pellets: 3 + Math.floor(l * 0.9), spread: 0.52, speed: 265, life: 0.42, cap: 6, reload: Math.max(0.95, 2.5 - l * 0.17) }) },
     revolver: { name: "左轮手枪", icon: "轮", color: "#e8d9a0", max: 8, ammo: true,
       desc: () => "自动瞄准最近的敌人，速射高伤穿透弹，6 发后换弹",
-      down: "携带时 拾取范围 -15%（每级 +12%）", carry: { magnet: 0.15 },
       stat: (l) => ({ cd: 0.15, dmg: 20 + l * 10, pierce: 1 + Math.floor(l / 2), speed: 430, cap: 6, reload: Math.max(1.0, 2.7 - l * 0.18) }) }
   };
 
   /* =========================================================
-   *  4. 被动（18 种 · 每条加成后面都挂着一个"代价"）
+   *  4. 被动（20 种 · 上限统一 Lv10）
    *     desc = 每级的收益   down = 每级的代价文案   pen = 代价的数值
    *     代价逐级累积，在 stats() / maxHpOf() 里统一结算
+   *     注意：带代价的只是其中一部分 —— 磁石 / 穿透 / 荆棘 / 疾靴 / 疾风 /
+   *     体魄 / 护盾 / 灵巧 这 8 条已经改成纯收益（见 down/pen 的缺席）
    * ========================================================= */
   const PASSIVES = {
-    dmg: { name: "力量", icon: "力", color: "#ff6b8a", max: 5,
+    dmg: { name: "力量", icon: "力", color: "#ff6b8a", max: 10,
       desc: () => "所有伤害 +10%",
       down: "攻速 -3%", pen: { rate: 0.03 } },
-    rate: { name: "疾风", icon: "风", color: "#8affd6", max: 5,
-      desc: () => "攻击频率 +10%",
-      down: "伤害 -4%", pen: { dmg: 0.04 } },
-    speed: { name: "疾靴", icon: "靴", color: "#4bc8ff", max: 5,
-      desc: () => "移动速度 +9%",
-      down: "受伤 +3%", pen: { taken: 0.03 } },
-    hp: { name: "体魄", icon: "体", color: "#ff3b5c", max: 5,
-      desc: () => "最大生命 +22 并立即回复",
-      down: "移速 -4%", pen: { spd: 0.04 } },
-    magnet: { name: "磁石", icon: "磁", color: "#ffd166", max: 5,
-      desc: () => "拾取范围 +30%",
-      down: "经验 -5%", pen: { exp: 0.05 } },
-    crit: { name: "锐眼", icon: "眼", color: "#c9a7ff", max: 5,
+    rate: { name: "疾风", icon: "风", color: "#8affd6", max: 10,
+      desc: () => "攻击频率 +10%" },
+    speed: { name: "疾靴", icon: "靴", color: "#4bc8ff", max: 10,
+      desc: () => "移动速度 +9%" },
+    hp: { name: "体魄", icon: "体", color: "#ff3b5c", max: 10,
+      desc: () => "最大生命 +22 并立即回复" },
+    magnet: { name: "磁石", icon: "磁", color: "#ffd166", max: 10,
+      desc: () => "拾取范围 +30%" },
+    crit: { name: "锐眼", icon: "眼", color: "#c9a7ff", max: 10,
       desc: () => "暴击率 +7%",
       down: "暴伤 -0.12", pen: { critDmg: 0.12 } },
-    area: { name: "扩张", icon: "扩", color: "#9fe8ff", max: 5,
+    area: { name: "扩张", icon: "扩", color: "#9fe8ff", max: 10,
       desc: () => "所有范围效果 +13%",
       down: "伤害 -4%", pen: { dmg: 0.04 } },
-    armor: { name: "坚韧", icon: "韧", color: "#b0c4de", max: 5,
+    armor: { name: "坚韧", icon: "韧", color: "#b0c4de", max: 10,
       desc: () => "受到的伤害 -6%",
       down: "移速 -3%", pen: { spd: 0.03 } },
-    lithe: { name: "灵巧", icon: "巧", color: "#7bff9e", max: 5,
-      desc: () => "闪避率 +4%（完全免伤）",
-      down: "最大生命 -4%", pen: { hp: 0.04 } },
-    regen: { name: "再生", icon: "生", color: "#7bff9e", max: 5,
+    // 铁壁：护甲流的天花板开关。它自己给的不多（4%/级），
+    // 真正的价值是把护甲上限从 65% 抬到 85% —— 且 1 级就生效（见 stats()）
+    bulwark: { name: "铁壁", icon: "壁", color: "#8fa8c8", max: 10,
+      desc: () => "受到的伤害 -4%，并把护甲上限 65% → 85%（1 级即解锁）" },
+    lithe: { name: "灵巧", icon: "巧", color: "#7bff9e", max: 10,
+      desc: () => "闪避率 +4%（完全免伤）" },
+    regen: { name: "再生", icon: "生", color: "#7bff9e", max: 10,
       desc: () => "每秒回复 0.45 生命",
       down: "最大生命 -3%", pen: { hp: 0.03 } },
-    greed: { name: "贪婪", icon: "贪", color: "#ffd166", max: 5,
+    greed: { name: "贪婪", icon: "贪", color: "#ffd166", max: 10,
       desc: () => "经验获取 +20%",
       down: "伤害 -4%", pen: { dmg: 0.04 } },
-    critDmg: { name: "致命", icon: "致", color: "#ff5ce0", max: 5,
+    critDmg: { name: "致命", icon: "致", color: "#ff5ce0", max: 10,
       desc: () => "暴击伤害 +0.5 倍",
       down: "暴击率 -3%", pen: { crit: 0.03 } },
-    pierce: { name: "穿透", icon: "穿", color: "#dfe9ff", max: 3,
-      desc: () => "投射物额外穿透 +1",
-      down: "攻速 -5%", pen: { rate: 0.05 } },
+    pierce: { name: "穿透", icon: "穿", color: "#dfe9ff", max: 10,
+      desc: () => "投射物额外穿透 +1" },
     // —— 第二批：续航 / 反伤 / 残血爆发 / 格挡 / 击杀连锁 ——
-    vamp: { name: "嗜血", icon: "血", color: "#ff4d6d", max: 5,
+    vamp: { name: "嗜血", icon: "血", color: "#ff4d6d", max: 10,
       desc: () => "每次击杀回复 0.5 生命（每秒最多 0.9×等级）",
       down: "最大生命 -5%", pen: { hp: 0.05 } },
-    thorn: { name: "荆棘", icon: "荆", color: "#8fd14f", max: 5,
-      desc: () => "受伤时对周围敌人反弹 9 点伤害",
-      down: "受伤 +3%", pen: { taken: 0.03 } },
-    rage: { name: "狂怒", icon: "怒", color: "#ff2e4d", max: 5,
-      desc: () => "生命越低伤害越高，满级残血最多 +45%",
+    thorn: { name: "荆棘", icon: "荆", color: "#8fd14f", max: 10,
+      desc: () => "受伤时对周围敌人反弹 9 点伤害" },
+    // 反震：另一条"挨打换输出"的路子，但反伤值直接由护甲换算（护甲 ×80），
+    // 所以它和坚韧 / 铁壁是乘法关系，而荆棘是固定值
+    reflect: { name: "反震", icon: "震", color: "#c8d4e8", max: 10,
+      desc: () => "受到的伤害 -3%，受伤时按当前护甲对周围敌人反弹伤害（护甲% ×80）" },
+    rage: { name: "狂怒", icon: "怒", color: "#ff2e4d", max: 10,
+      desc: () => "生命越低伤害越高，满级残血最多 +90%",
       down: "最大生命 -4%", pen: { hp: 0.04 } },
-    shield: { name: "护盾", icon: "盾", color: "#9fe8ff", max: 5,
-      desc: () => "每 15 秒（每级 -2 秒）获得一次完全格挡",
-      down: "移速 -4%", pen: { spd: 0.04 } },
-    reap: { name: "收割", icon: "割", color: "#ff8a3d", max: 4,
+    shield: { name: "护盾", icon: "盾", color: "#9fe8ff", max: 10,
+      desc: () => "每 15 秒（每级 -1.25 秒）获得一次完全格挡" },
+    reap: { name: "收割", icon: "割", color: "#ff8a3d", max: 10,
       desc: () => "击杀时引发小范围爆炸，伤害随等级提升",
       down: "攻速 -5%", pen: { rate: 0.05 } }
   };
@@ -1266,7 +1271,9 @@
    * ========================================================= */
   const ENEMIES = {
     slime: { hp: 7, spd: 26, dmg: 5, r: 5, w: 10, h: 9, exp: 1, color: "#5fd35f", dark: "#2f7f36" },
-    bat: { hp: 6, spd: 66, dmg: 4, r: 5, w: 11, h: 8, exp: 1, color: "#b06fd8", dark: "#6a3a92" },
+    // 蝙蝠：spd 从 66 砍到 52（66 比玩家基础移速 70 只慢一点点，还叠着左右穿插，
+    // 实际是全场最难摆脱的杂兵）。机动性靠 updateEnemies 里的摆动幅度补回来
+    bat: { hp: 6, spd: 52, dmg: 4, r: 5, w: 11, h: 8, exp: 1, color: "#b06fd8", dark: "#6a3a92" },
     skel: { hp: 24, spd: 34, dmg: 8, r: 6, w: 10, h: 13, exp: 2, color: "#e8e8d8", dark: "#8f8f7a" },
     ghost: { hp: 18, spd: 48, dmg: 7, r: 6, w: 11, h: 13, exp: 3, color: "#7fd8ff", dark: "#3f7fa8" },
     armored: { hp: 48, spd: 20, dmg: 10, r: 7, w: 13, h: 13, exp: 5, color: "#9aa4b8", dark: "#4d566e", armor: 0.35 },
@@ -1292,7 +1299,7 @@
   const BOSS_ORDER = Object.keys(BOSSES);   // 从 BOSSES 派生，顺序与声明一致
   const ENEMY_TXT = {
     slime: "最基础的杂兵，成群出现",
-    bat: "高速飞行，轨迹飘忽",
+    bat: "飞行轨迹飘忽，来回穿插；基础速度不快，但很难甩干净",
     skel: "血厚一些的常规步兵",
     ghost: "半透明，中速追击",
     armored: "甲壳减免 35% 所受伤害",
@@ -1340,6 +1347,10 @@
 
   // 所有角色的初始生命统一到 80（角色修正 / 难度修正 / 被动代价都在此之上相乘）
   const BASE_HP = 80;
+  // 护甲上限。基础 65% 是给"坚韧 + 角色自带护甲"留的天花板；
+  // 铁壁（bulwark）存在的意义就是把这个天花板抬到 85% —— 否则堆护甲会很快撞墙。
+  const ARMOR_CAP = 0.85;
+  const ARMOR_CAP_BASE = 0.65;
   // 最大生命不再是"存起来再加减"的数，而是每次重算的派生值 ——
   // 因为被动代价会实时改变它，存值很容易和实际加成对不上
   function maxHpOf(p) {
@@ -1383,16 +1394,25 @@
     const pen = penOf(p);
     // 狂怒：按已损失生命的比例加伤，残血时收益最大
     const rageK = s.rage > 0 ? 0.09 * s.rage * (1 - clamp(p.hp / p.maxHp, 0, 1)) : 0;
+    // 武器大师：每"多带"一件武器 → 伤害 +4% / 攻击频率 -1%。
+    // 起手那一件不算"增加"，所以按 weapons.length - 1 结算；上限 10 槽即最多 9 层。
+    const wExtra = m.weaponDmg ? Math.max(0, p.weapons.length - 1) : 0;
+    // 护甲：坚韧 6%/级 + 铁壁 4%/级 + 角色自带。上限本身也是一条被动效果 ——
+    // 没有铁壁就卡在 65%，点了铁壁（哪怕 1 级）才解锁 85% 的天花板。
+    const armor = Math.min(s.bulwark > 0 ? ARMOR_CAP : ARMOR_CAP_BASE,
+                           0.06 * s.armor + 0.04 * (s.bulwark || 0) + (m.armor || 0));
     return {
-      // 每条被动的加成后面都跟着它的代价，这里一并结算 —— 卡面下方那行红字就是它
-      dmgMul: (1 + 0.10 * s.dmg + rageK) * (1 + (m.dmg || 0)) * (1 - (pen.dmg || 0)),
-      rateMul: Math.max(0.35, (1 + 0.10 * s.rate) * (1 + (m.rate || 0)) * (1 - (pen.rate || 0))),
+      // 带代价的那部分被动，加成后面都跟着它的代价，这里一并结算 ——
+      // 卡面下方那行红字就是它（磁石 / 穿透 / 荆棘 等 8 条已改成纯收益，不再出现在这里）
+      dmgMul: (1 + 0.10 * s.dmg + rageK) * (1 + (m.dmg || 0)) * (1 - (pen.dmg || 0)) *
+              (1 + (m.weaponDmg || 0) * wExtra),
+      rateMul: Math.max(0.35, (1 + 0.10 * s.rate) * (1 + (m.rate || 0)) * (1 - (pen.rate || 0)) *
+              (1 - (m.weaponRate || 0) * wExtra)),
       spd: 70 * (1 + 0.09 * s.speed) * (1 + (m.spd || 0)) * (1 - (pen.spd || 0)) * (mm.pspd || 1),
       magnet: 42 * (1 + 0.30 * s.magnet) * (1 + (m.magnet || 0)) * (1 - (pen.magnet || 0)),
-      // 武器大师：永久无法暴击
-      crit: m.nocrit ? 0 : clamp(0.05 + 0.07 * s.crit + (m.crit || 0) - (pen.crit || 0), 0, 0.85),
-      critDmg: m.nocrit ? 1 : Math.max(1, 2 + 0.5 * s.critDmg + (m.critDmg || 0) - (pen.critDmg || 0)),
-      armor: Math.min(0.65, 0.06 * s.armor + (m.armor || 0)),
+      crit: clamp(0.05 + 0.07 * s.crit + (m.crit || 0) - (pen.crit || 0), 0, 0.85),
+      critDmg: Math.max(1, 2 + 0.5 * s.critDmg + (m.critDmg || 0) - (pen.critDmg || 0)),
+      armor: armor,
       // 闪避：概率性完全免伤。上限 60%，避免后期变成无敌
       dodge: clamp(0.04 * s.lithe + (m.dodge || 0), 0, 0.6),
       taken: (1 + (m.taken || 0)) * (1 + (pen.taken || 0)),
@@ -1406,7 +1426,13 @@
       vamp: 0.5 * s.vamp,
       vampCap: 0.9 * s.vamp,
       thorn: 9 * s.thorn,
-      shieldCd: s.shield > 0 ? Math.max(5, 15 - 2 * s.shield) : 0,
+      // 反震：反伤完全由护甲厚度决定（护甲越高弹得越疼），所以它和坚韧/铁壁是乘法关系。
+      // 反震本身每级也给 3% 护甲 —— 升级它就是在同时抬高这条反伤的基数。
+      reflect: s.reflect > 0 ? armor * 80 : 0,
+      reflectR: 78,
+      // 护盾：旧曲线是 15→5 秒（5 级、每级 -2）。上限提到 10 级后按"满级强度翻倍"折算，
+      // 每级 -1.25 秒，10 级正好 2.5 秒 —— 恰好是旧版满级的一半
+      shieldCd: s.shield > 0 ? Math.max(2.5, 15 - 1.25 * s.shield) : 0,
       reap: s.reap > 0 ? 5 + 5 * s.reap : 0,
       reapR: 16 + 5 * s.reap
     };
@@ -1441,10 +1467,11 @@
     }
   }
 
-  // 可用武器槽位：普通角色固定 6；武器大师初始 2，之后每 2 级 +1，上限 10
+  // 可用武器槽位：普通角色固定 6；武器大师重做后开局就是 10 个槽，
+  // 不再"初始 2、每 2 级 +1" —— 槽位不再是成长曲线的一部分
   function weaponSlots(p) {
     const m = p.mods;
-    if (m.wslots) return Math.min(m.maxW || 10, 2 + Math.floor((G.level - 1) / 2));
+    if (m.wslots) return m.maxW || 10;
     return 6;
   }
 
@@ -1851,6 +1878,19 @@
       }
       if (G.zones.length < 30) G.zones.push({ type: "ring", x: p.x, y: p.y - 6, r: 44, c: "#8fd14f", n: 16, t: 0, life: 0.26, hit: true });
     }
+    // 反震：护甲流自己的输出手段。反伤值 = 当前护甲% ×80（所以它吃坚韧 / 铁壁
+    // 的乘算：铁壁把护甲上限从 65% 抬到 85%，满配反震也就从 52 涨到 68），
+    // 再吃一层 dmgMul。和荆棘的区别是：荆棘是固定值，反震是跟着护甲长。
+    if (st.reflect > 0) {
+      const rr = st.reflectR || 78, val = st.reflect * st.dmgMul;
+      const near3 = query(p.x, p.y, rr);
+      for (let i = 0; i < near3.length; i++) {
+        const e = near3[i];
+        if (e.dead) continue;
+        if (dist2(p.x, p.y, e.x, e.y) <= rr * rr) damage(e, val, false, p);
+      }
+      if (G.zones.length < 30) G.zones.push({ type: "ring", x: p.x, y: p.y - 6, r: rr * 0.6, c: "#c8d4e8", n: 18, t: 0, life: 0.26, hit: true });
+    }
     // 受伤击退：推开周围的敌人，给出脱身空间
     const near = query(p.x, p.y, 56);
     for (let i = 0; i < near.length; i++) {
@@ -1992,6 +2032,8 @@
   }
 
   // 各时间段的可用怪物池（越后期越硬）
+  // 注意：pool 里的重复项 = 权重。骷髅弓手 / 狙击手 各只留 1～2 份，
+  // 免得后期它们把近战怪挤光（真正的硬闸在下面的 pickSpawn）
   function currentPool(t) {
     const pool = ["slime"];
     if (t > 25) pool.push("bat");
@@ -2000,9 +2042,32 @@
     if (t > 130) pool.push("ghost", "archer");
     if (t > 180) pool.push("ghost", "armored", "charger", "sniper");
     if (t > 240) pool.push("armored", "charger", "bomber", "vampire");
-    if (t > 320) pool.push("armored", "bomber", "archer", "suicider", "sniper");
-    if (t > 420) pool.push("suicider", "vampire", "sniper");
+    if (t > 320) pool.push("armored", "bomber", "suicider", "sniper");
+    if (t > 420) pool.push("suicider", "vampire", "bomber");
     return pool;
+  }
+
+  /* ---- 远程怪限流 ----
+   * 骷髅弓手 / 狙击手 站得远、打得准，数量一多就变成"屏幕外被点名"，
+   * 反馈里说的刷得太多就是这个问题。所以除了调低它们在 pool 里的权重，
+   * 再加一道软上限：场上这两类活着的总数超过 rangedCap(t) 时，
+   * 本次刷新直接从池子里的近战怪中另抽一个。 */
+  const RANGED = { archer: 1, sniper: 1 };
+  function rangedCap(t) { return 5 + Math.floor(t / 75); }   // 1 分钟 5 只 → 5 分钟 9 只
+  function countRanged() {
+    let n = 0;
+    for (let i = 0; i < G.enemies.length; i++) {
+      const e = G.enemies[i];
+      if (!e.dead && RANGED[e.type]) n++;
+    }
+    return n;
+  }
+  function pickSpawn(pool, t) {
+    const k = pick(pool);
+    if (!RANGED[k] || countRanged() < rangedCap(t)) return k;
+    const melee = [];
+    for (let i = 0; i < pool.length; i++) if (!RANGED[pool[i]]) melee.push(pool[i]);
+    return melee.length ? pick(melee) : k;
   }
 
   function updateSpawner(dt) {
@@ -2046,7 +2111,7 @@
       for (let i = 0; i < cnt; i++) {
         if (G.enemies.length > 340) break;
         const q = spawnPos(side);
-        spawnEnemy(pick(pool), q.x + rnd(-14, 14), q.y + rnd(-14, 14), hpMul, spdMul, dmgMul);
+        spawnEnemy(pickSpawn(pool, t), q.x + rnd(-14, 14), q.y + rnd(-14, 14), hpMul, spdMul, dmgMul);
       }
       if (G.bossCount === 0) toast("敌潮来袭");
     }
@@ -2066,7 +2131,7 @@
       const q = spawnPos();
       // 精英怪比例随时间走高，后期靠质量而不是数量施压
       if (t > 90 && Math.random() < 0.03 * (mm.elite || 1) * (1 + t / 400)) { spawnEnemy("brute", q.x, q.y, hpMul * 0.8, spdMul, dmgMul); continue; }
-      spawnEnemy(pick(pool), q.x, q.y, hpMul, spdMul, dmgMul);
+      spawnEnemy(pickSpawn(pool, t), q.x, q.y, hpMul, spdMul, dmgMul);
     }
   }
 
@@ -2220,12 +2285,6 @@
         }
         Snd.zap();
       }
-    } else if (slot.key === "beam") {
-      const ang = G.time * 1.4;
-      for (let i = 0; i < 4; i++) {
-        G.beams.push({ x: p.x, y: p.y - 6, a: ang + i * Math.PI / 2, len: s.len, wide: s.wide, dmg: dmg, life: s.life, t: 0, hit: [] });
-      }
-      Snd.beep(880, 0.12, "sawtooth", 0.03, 500);
     } else if (slot.key === "shotgun") {
       // 自动瞄准最近的敌人；扇形扩散会顺带覆盖它周围的同伴
       const my = p.y - 8;
@@ -2315,7 +2374,7 @@
       }
       Snd.beep(1400, 0.1, "sine", 0.03, 520);
     }
-    /* orbit / aura 为持续型，在 updateWeapons 中结算 */
+    /* orbit / aura / beam 为持续型，在 updateWeapons 中结算 */
   }
 
   // 弹匣消耗：打空进入换弹
@@ -2384,6 +2443,9 @@
         }
         continue;
       }
+      // 十字光束：常驻型武器，和 orbit / aura 一样在 updateWeapons 里结算，
+      // 不进下面那套"按 cd 开火"的节拍 —— 它只负责把十字架起来，之后就一直在
+      if (slot.key === "beam") { ensureBeam(p); continue; }
       slot.t -= dt;
       if (slot.t <= 0) {
         slot.t = s.cd / st.rateMul;
@@ -2592,28 +2654,99 @@
     }
   }
 
+  /* 十字光束（常驻型武器）—— 旧实现有两个致命毛病：
+   *   1) 它走的是"按 cd 开火"那套：每次 push 一批只活 0.45 秒的临时光束，
+   *      两次开火之间头顶是空的。也就是说它有 80%+ 的时间根本没在输出，
+   *      这就是它"隔一会儿才出现一下、非常弱"的根源。
+   *   2) b.a 在创建时设好之后就再也没被写过（updateBeams 里根本没有旋转那一行），
+   *      desc 承诺的"缓缓旋转"从来没有实现过 —— 它只是原地闪一下。
+   * 现在改成：带着这把武器就一直挂着十字，永不消失；身边有敌人时自动把一条
+   * 光刃咬住最近的敌人、其余三条垂直展开，并且在锁敌状态下仍然缓慢自转
+   * （所以敌人绕后也躲不掉，只是转速降下来）。rate = 同一个敌人的再命中间隔，
+   * 所以它是"持续切割"，而不是"一次开火打一下"。
+   * 等级 = 十字个数：Lv1 一个十字（4 条光刃），Lv2 两个（8 条），依此类推。 */
+  function ensureBeam(p) {
+    const own = G.players.indexOf(p);
+    // 同一个玩家身上可能挂着多个光束槽，取等级最高的那条作代表
+    let slot = null;
+    for (let i = 0; i < p.weapons.length; i++) {
+      const w = p.weapons[i];
+      if (w.key === "beam" && (!slot || w.level > slot.level)) slot = w;
+    }
+    if (!slot) {
+      for (let i = G.beams.length - 1; i >= 0; i--)
+        if (G.beams[i].own === own) G.beams.splice(i, 1);
+      return;
+    }
+    const s = WEAPONS.beam.stat(slot.level);
+    let mine = 0;
+    for (let i = 0; i < G.beams.length; i++) if (G.beams[i].own === own) mine++;
+    while (mine < slot.level) {
+      G.beamSeq = (G.beamSeq || 0) + 1;
+      G.beams.push({ id: G.beamSeq, own: own, x: p.x, y: p.y - 6, a: 0,
+                     len: s.len, wide: s.wide, dmg: s.dmg,
+                     rate: s.rate, spin: s.spin, hit: [], t: 0 });
+      mine++;
+    }
+    // 等级变化后同步数值（升级到一半时长度/伤害/转速都要跟上）
+    for (let i = 0; i < G.beams.length; i++) {
+      const b = G.beams[i];
+      if (b.own !== own) continue;
+      b.len = s.len; b.wide = s.wide; b.dmg = s.dmg;
+      b.rate = s.rate; b.spin = s.spin;
+    }
+  }
+
   function updateBeams(dt) {
     for (let i = G.beams.length - 1; i >= 0; i--) {
       const b = G.beams[i];
-      const p = G.players[b.own] || G.players[0], st = ST(p);
-      b.t += dt;
-      if (b.t >= b.life) { G.beams.splice(i, 1); continue; }
+      const p = G.players[b.own] || G.players[0];
+      if (!p) { G.beams.splice(i, 1); continue; }
+      // 收尾：ensureBeam 只在"手里还攥着十字光束"时才会被调用，所以武器一没
+      // 就没人负责删除十字了。放在这里做，不管武器怎么消失都能收干净。
+      let has = false;
+      for (let j = 0; j < p.weapons.length; j++) if (p.weapons[j].key === "beam") { has = true; break; }
+      if (!has) { G.beams.splice(i, 1); continue; }
+      const st = ST(p);
       b.x = p.x; b.y = p.y - 6;
+      b.t += dt;
+      // ★ 旧代码缺的就是这一行，所以"缓缓旋转"从未发生
+      b.a += b.spin * dt;
+      // 身边有人时，把一条光刃咬住最近的敌人（另外三条跟着转出来）
+      const near = nearestEnemy(b.x, b.y, 520);
+      if (near) {
+        const aim = Math.atan2(near.y - b.y, near.x - b.x);
+        let d = ((aim - b.a) % TAU + TAU) % TAU;
+        if (d > Math.PI) d -= TAU;
+        b.a += d * Math.min(1, dt * 5);
+      }
       const list = query(b.x, b.y, b.len + 20);
+      const seen = [];
       for (let j = 0; j < list.length; j++) {
         const e = list[j];
-        if (e.dead || b.hit.indexOf(e) >= 0) continue;
-        // 点到线段的距离
-        const dx = Math.cos(b.a), dy = Math.sin(b.a);
+        if (e.dead) continue;
         const px = e.x - b.x, py = e.y - b.y;
-        const proj = clamp(px * dx + py * dy, 0, b.len);
-        const cx = b.x + dx * proj, cy = b.y + dy * proj;
-        if (dist2(e.x, e.y, cx, cy) <= (b.wide / 2 + e.r) * (b.wide / 2 + e.r)) {
-          b.hit.push(e);
-          const crit = Math.random() < st.crit;
-          damage(e, b.dmg * (crit ? st.critDmg : 1), crit, p);
+        // 四条光刃逐条做"点到线段"判定，而不是只判一条
+        let touched = false;
+        for (let k = 0; k < 4 && !touched; k++) {
+          const ang = b.a + k * Math.PI / 2;
+          const ex = Math.cos(ang), ey = Math.sin(ang);
+          const proj = clamp(px * ex + py * ey, 0, b.len);
+          const cx = b.x + ex * proj, cy = b.y + ey * proj;
+          const rr = b.wide / 2 + e.r;
+          if (dist2(e.x, e.y, cx, cy) <= rr * rr) touched = true;
         }
+        if (!touched) continue;
+        seen.push(e);
+        // 同一个敌人按 rate 的间隔反复受伤 —— 持续切割，而不是打一下就免疫
+        if (!e._bm) e._bm = {};
+        const key = "b" + b.id;
+        if (G.time - (e._bm[key] || -9) < b.rate) continue;
+        e._bm[key] = G.time;
+        const crit = Math.random() < st.crit;
+        damage(e, b.dmg * st.dmgMul * (crit ? st.critDmg : 1), crit, p);
       }
+      b.hit = seen;
     }
   }
 
@@ -2903,7 +3036,9 @@
         }
       } else {
         mx = dx / d * mv; my = dy / d * mv;
-        if (e.type === "bat") { mx += Math.cos(G.time * 3 + e.anim) * 22; my += Math.sin(G.time * 4 + e.anim) * 14; }
+        // 摆动幅度从 22/14 提到 26/17：速度下来之后，"飘忽"这条特征全部由这里承担，
+        // 所以它依旧是全场最难预判轨迹的敌人，只是不再比你跑得还快
+        if (e.type === "bat") { mx += Math.cos(G.time * 3 + e.anim) * 26; my += Math.sin(G.time * 4 + e.anim) * 17; }
         if (e.type === "ghost") { mx *= 0.9; my *= 0.9; }
       }
 
@@ -3138,8 +3273,6 @@
       for (const k in WEAPONS) if (!p.weapons.find(w => w.key === k)) freshW.push({ kind: "w", key: k, level: 1 });
     }
     for (const k in PASSIVES) {
-      // 武器大师无法暴击，暴击类词条不进池
-      if (p.mods.nocrit && (k === "crit" || k === "critDmg")) continue;
       if (p.passives[k] === 0) freshP.push({ kind: "p", key: k, level: 1 });
     }
     for (let i = freshW.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; const t = freshW[i]; freshW[i] = freshW[j]; freshW[j] = t; }
@@ -4450,7 +4583,9 @@
   function drawBeams(camX, camY) {
     for (let i = 0; i < G.beams.length; i++) {
       const b = G.beams[i];
-      const k = 1 - b.t / b.life;
+      // 常驻光束不再有生灭，所以没有 t/life 的淡出曲线了；
+      // 换成一个很轻的呼吸（否则一整局都是一根死板的直线，看着像卡住了）
+      const k = 0.82 + 0.18 * Math.sin(G.time * 6 + i * 1.7);
       const x = Math.round(b.x - camX), y = Math.round(b.y - camY);
       ctx.save();
       ctx.globalAlpha = clamp(k * 1.2, 0, 1);
@@ -5251,9 +5386,13 @@
       row("护盾", st.shieldCd > 0 ? (p.shield > 0 ? "就绪" : Math.ceil(Math.max(0, p.shieldT)) + "s") : "—",
           st.shieldCd > 0 ? "冷却 " + st.shieldCd + "s" : "") +
       row("闪避", st.dodge > 0 ? Math.round(st.dodge * 100) + "%" : "—", st.dodge > 0 ? "完全免伤" : "") +
-      row("护甲", st.armor > 0 ? Math.round(st.armor * 100) + "%" : "—") +
+      row("护甲", st.armor > 0 ? Math.round(st.armor * 100) + "%" : "—",
+          "上限 " + Math.round((p.passives.bulwark > 0 ? ARMOR_CAP : ARMOR_CAP_BASE) * 100) + "%" +
+          (p.passives.bulwark > 0 ? "（铁壁已解锁）" : "（铁壁可解锁 85%）")) +
       row("受伤倍率", "×" + st.taken.toFixed(2), penHint("taken")) +
-      row("荆棘反伤", st.thorn > 0 ? st.thorn.toFixed(0) : "—") +
+      row("荆棘反伤", st.thorn > 0 ? st.thorn.toFixed(0) : "—", st.thorn > 0 ? "固定值 / 次" : "") +
+      row("反震反伤", st.reflect > 0 ? st.reflect.toFixed(0) : "—",
+          st.reflect > 0 ? "护甲 " + Math.round(st.armor * 100) + "% ×80" : "") +
       row("最大生命", p.maxHp, pen.hp ? "-" + Math.round(pen.hp * 100) + "%" : "")));
 
     /* ---- 输出 ---- */
@@ -5285,7 +5424,8 @@
       ? grid(penBody) + '<div class="dNote">同类代价按 <em>' +
         'eff = 渐近线 × (1 − e^(−名义值 / 渐近线))</em> 收敛：越接近渐近线每级增量越小，' +
         '但永远大于 0 —— 所以堆同类被动不会变成白点，只是回报递减。</div>'
-      : '<div class="dNote">当前没有吃到任何代价。被动的 pen 与重型武器的 carry 都会计入这里。</div>');
+      : '<div class="dNote">当前没有吃到任何代价。只有被动的 pen 会计入这里 —— ' +
+        '武器自带的携带代价（carry）已经在平衡调整里全部取消了。</div>');
 
     /* ---- 被动 ---- */
     let pBody = "";
@@ -5310,13 +5450,20 @@
       const bits = [];
       bits.push("期望 " + exp1(s.dmg).toFixed(1) + (n > 1 ? " ×" + n : "") + " /次");
       if (s.cd) bits.push("间隔 " + s.cd.toFixed(2) + "s");
-      if (s.spin) bits.push("转速 " + s.spin.toFixed(2));
+      // 十字光束是常驻型：没有 cd，rate 的含义也是"同一个敌人被切割的间隔"，
+      // 所以它的展示单独走一套，免得把 1/rate 误读成攻击频率
+      if (w.key === "beam") {
+        bits.push("长度 " + Math.round(s.len * st.area));
+        bits.push("光刃 " + (w.level * 4) + " 条");
+      }
+      if (s.spin && w.key !== "beam") bits.push("转速 " + s.spin.toFixed(2));
       if (s.radius) bits.push("半径 " + Math.round(s.radius * st.area));
       if (s.range) bits.push("射程 " + Math.round(s.range));
       if (s.jumps) bits.push("跳 " + s.jumps);
       if (s.pierce > 1) bits.push("穿透 " + s.pierce);
       if (s.cap && !d.ammo) bits.push("上限 " + s.cap);   // 弹匣武器的 cap 就是弹匣，下面单独写
-      if (s.rate) bits.push("每秒 " + (1 / s.rate).toFixed(1) + " 次");
+      if (s.rate && w.key !== "beam") bits.push("每秒 " + (1 / s.rate).toFixed(1) + " 次");
+      if (w.key === "beam") bits.push("同一敌人每 " + s.rate.toFixed(2) + "s 被切一次");
       if (d.ammo) bits.push("弹匣 " + s.cap + " · 换弹 " + s.reload.toFixed(2) + "s");
       // 携带代价：显示"这一件"对代价总额的边际贡献（从总账里去掉它再看差多少）
       if (d.carry) {
@@ -5552,7 +5699,8 @@
     for (const k in ENEMIES) {
       const d = ENEMIES[k];
       eRows += '<div class="row2"><i style="background:' + d.color + '"></i><div>' +
-        '<b>' + ENEMY_NAME[k] + '</b> <u>HP ' + d.hp + ' · ' + (d.dmg > 0 ? "接触伤害 " + d.dmg : "靠自爆造成伤害") +
+        '<b>' + ENEMY_NAME[k] + '</b> <u>HP ' + d.hp + (d.spd ? ' · 移速 ' + d.spd : '') +
+        ' · ' + (d.dmg > 0 ? "接触伤害 " + d.dmg : "靠自爆造成伤害") +
         ' · 经验 ' + d.exp + '</u><br>' + ENEMY_TXT[k] + '</div></div>';
     }
     let bRows = "";
@@ -5588,7 +5736,8 @@
 
       '<div class="sec"><h3>核心循环</h3><ul>' +
       '<li>击杀敌人 → 掉落经验宝石 → 拾取 → 升级 → <em>三选一强化</em> → 撑过更高强度</li>' +
-      '<li>同时最多携带 <em>6 件武器</em>（武器大师最多 <em>10 件</em>：初始 2，之后每 2 级 +1）；被动不占武器位</li>' +
+      '<li>同时最多携带 <em>6 件武器</em>；<em>武器大师</em>开局就有 <em>10 个槽位</em>（不随等级成长）。' +
+      '武器大师每多带一件武器：伤害 <em>+4%</em>、攻击频率 <em>-1%</em>；被动不占武器位</li>' +
       '<li>每 <em>28 秒</em>一波敌潮从同一侧涌入</li>' +
       '<li>没有通关终点 —— 目标是活得更久、解锁角色、刷新各难度的纪录</li></ul></div>' +
 
@@ -5612,14 +5761,20 @@
       '<li><em>伤害</em>：全局倍率，作用于所有武器</li>' +
       '<li><em>暴击 / 暴伤</em>：暴击基础 2 倍，暴伤词条继续叠加倍率</li>' +
       '<li><em>闪避</em>：概率<em>完全免伤</em>（方差大，靠运气，硬上限 60%）</li>' +
-      '<li><em>护甲</em>：按比例减免受到的所有伤害（稳定可预期）</li>' +
+      '<li><em>护甲</em>：按比例减免受到的所有伤害（稳定可预期）。<em>上限 65%</em>，' +
+      '拿了<em>铁壁</em>之后抬到 <em>85%</em>（1 级即解锁上限，之后每级再给 4% 护甲）</li>' +
+      '<li><em>反震</em>：护甲流自己的输出手段 —— 受伤时按<em>当前护甲% ×80</em> 对周围敌人反弹伤害，' +
+      '所以它和坚韧 / 铁壁是乘法关系（满配约 68 点/次）；荆棘则是固定 9 点/级，两条可以一起拿</li>' +
       '<li><em>移速 / 拾取</em>：走位能力与经验吸附半径</li>' +
       '<li><em>经验 / 再生 / 穿透 / 范围</em>：成长速度、每秒回血、投射物穿透数、所有 AOE 半径</li>' +
       '<li>所有角色<em>初始生命统一为 ' + BASE_HP + ' 点</em>，角色的生命修正、地图/难度修正、被动代价都在这个基数上相乘</li>' +
-      '<li><em>每条被动都带代价</em>：加成按级数涨，代价同样按级数累积，而且是<em>全局结算</em>的 —— ' +
-      '例如力量加伤害但拖攻速、嗜血加回复但削最大生命、灵巧加闪避但同样削最大生命</li>' +
-      '<li><em>部分重型武器也带代价</em>：巨镰拖攻击频率，奇点与哨戒炮台拖移动速度，左轮手枪压缩拾取范围。' +
-      '携带即生效，且<em>随武器等级变重</em>（每级 +12%）。升级卡片与 TAB 数据面板都会标出来</li>' +
+      '<li><em>只有一部分被动带代价</em>：加成按级数涨，代价同样按级数累积，而且是<em>全局结算</em>的 —— ' +
+      '例如力量加伤害但拖攻速、嗜血加回复但削最大生命、扩张加范围但削伤害</li>' +
+      '<li><em>磁石 / 穿透 / 荆棘 / 疾靴 / 疾风 / 体魄 / 护盾 / 灵巧 这 8 条已经改成纯收益</em>，' +
+      '取消代价后它们不再有任何副作用，可以放心堆</li>' +
+      '<li><em>所有被动上限统一为 Lv10</em>：每级的数值维持原样，所以满级强度是原来的两倍</li>' +
+      '<li><em>武器不再自带任何代价</em>：巨镰的攻速惩罚、奇点与哨戒炮台的移速惩罚、左轮手枪的拾取范围惩罚' +
+      '已经全部取消。代价结算机制本身还留在代码里，但现在已经没有任何武器在用它</li>' +
       '<li><em>同类代价按饱和曲线收敛</em>：实际值 = 渐近线 × (1 − e^(−名义值/渐近线))。' +
       '越接近渐近线每级增量越小，但<em>永远大于 0</em> —— 所以堆同类被动不会变成白点，只是回报递减；' +
       '反过来"每样都拿一点"也不再是免费的最优解。升级卡面上的红字会同时给出<em>这一级点下去之后的值</em>和渐近线</li>' +
@@ -5643,11 +5798,28 @@
       '所以换图就等于换一套数值压力。选择会被存档记住。</p>' +
       '<div class="cols">' + mapRows + '</div></div>' +
 
-      '<div class="sec"><h3>武器（' + Object.keys(WEAPONS).length + ' 种）</h3><div class="cols">' + wRows + '</div></div>' +
+      '<div class="sec"><h3>武器（' + Object.keys(WEAPONS).length + ' 种）</h3>' +
+      '<ul style="margin-bottom:8px">' +
+      '<li><em>十字光束是常驻武器</em>：带上它头顶就一直挂着旋转的十字，不会再"隔一会儿才出现一下"。' +
+      '身边有敌人时一条光刃会自动咬住最近的敌人、其余三条垂直展开，同时仍然缓慢自转，' +
+      '所以敌人绕后也躲不掉。等级 = 十字个数（Lv1 一个十字 / 4 条光刃，Lv2 两个 / 8 条），' +
+      '同一个敌人按固定间隔被反复切割，而不是"打一下就免疫"</li>' +
+      '<li><em>落雷</em>与<em>球状闪电</em>已加强：落雷基础伤害 14→18、每级 +7→+9、冷却 3.4s→2.85s 起步、' +
+      '下限 0.85s→0.68s；球状闪电伤害 5→8、每级 +2.4→+3.4、<em>每 2 级多一颗</em>（原来每 3 级），' +
+      '判定半径、持续时间与放电频率同步上调</li>' +
+      '</ul><div class="cols">' + wRows + '</div></div>' +
 
       '<div class="sec"><h3>被动（' + Object.keys(PASSIVES).length + ' 种）</h3><div class="cols">' + pRows + '</div></div>' +
 
-      '<div class="sec"><h3>敌人（' + Object.keys(ENEMIES).length + ' 种）</h3><div class="cols">' + eRows + '</div></div>' +
+      '<div class="sec"><h3>敌人（' + Object.keys(ENEMIES).length + ' 种）</h3>' +
+      '<ul style="margin-bottom:8px">' +
+      '<li><em>蝙蝠削了速度</em>：基础移速 66→52（原来只比玩家基础移速 70 慢一点点，' +
+      '再叠上左右穿插就完全甩不掉）。飘忽的机动性<em>原样保留</em>，' +
+      '所以它现在是"难缠"而不是"超标"</li>' +
+      '<li><em>骷髅弓手 / 狙击手被限流</em>：这两类远程怪在刷怪池里的权重下调，' +
+      '并且场上同时存活的数量有<em>软上限</em>（约 5 只，每 75 秒 +1）—— ' +
+      '超了就改刷近战怪，免得出现"屏幕外被点名"的体验</li>' +
+      '</ul><div class="cols">' + eRows + '</div></div>' +
 
       '<div class="sec"><h3>BOSS（' + Object.keys(BOSSES).length + ' 种）</h3><div class="cols">' + bRows + '</div>' +
       '<ul style="margin-top:8px"><li>首个 BOSS 在 <em>75 秒</em>出现，之后间隔逐波缩短（最短 32 秒），同场最多 <em>6 个</em></li>' +
