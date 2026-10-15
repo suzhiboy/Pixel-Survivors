@@ -117,7 +117,8 @@ const hook = `
       "ENEMIES","HEROES","MAP_KEYS","DIFFS","buildOptions","chooseUpgrade","openLevelUp","hurtPlayer","spawnEnemy",
       "pickSpawn","currentPool","ensureBeam","updateBeams","updateWeapons","update","render",
       "buildHelp","buildData","weaponSlots","penOf","damage","explode","ATMOST",
-      "query","rebuildGrid","grid","CELL","nearestEnemy","curST","maxHpOf","ARMOR_CAP","updateZones"];
+      "query","rebuildGrid","grid","CELL","nearestEnemy","curST","maxHpOf","ARMOR_CAP","updateZones",
+      "splitBurst","updateEnemies","updateBullets","drawAmmo","aimAngle","TAU"];
     const o = {};
     for (let i = 0; i < names.length; i++) { try { o[names[i]] = eval(names[i]); } catch (e) { o[names[i]] = undefined; } }
     return o;

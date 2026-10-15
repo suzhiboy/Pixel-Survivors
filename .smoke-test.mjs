@@ -1,4 +1,9 @@
-/* 冒烟测试：真跑游戏循环，逐条验证本次 8 项平衡调整 */
+/* 冒烟测试：真跑游戏循环，逐条验证两批调整
+ *   · 上一批 8 项平衡调整（蝙蝠 / 武器大师 / 狂战士 / 武器 debuff / 十字光束 / 被动代价 / 被动 Lv10 / 远程怪限流）
+ *   · 这一批 6 项（狂怒+力量去代价、冰霜新星加强、喷火器 / 冲锋枪 / 信号枪 / 分裂 四件新武器、文案与计数同步）
+ * 跑法：node .smoke-test.mjs   （失败时 exit 1）
+ * 依赖 .smoke-boot.mjs —— 它用假 DOM / Canvas / AudioContext 把 index.html 的 IIFE 跑起来并导出内部符号
+ */
 import { DUT as D } from "./.smoke-boot.mjs";
 
 let pass = 0, fail = 0;
@@ -241,6 +246,110 @@ ok(cardTxt.length > 200, "卡面有实际文案（" + cardTxt.length + " 字符�
 const stP3 = D.stats(p3);
 const nan3 = Object.keys(stP3).filter(k => typeof stP3[k] === "number" && !isFinite(stP3[k]));
 ok(nan3.length === 0, "成长 40 次后 stats() 依然没有 NaN", nan3.join(","));
+
+sec("13. 狂怒 / 力量去掉代价；冰霜新星加强");
+ok(!D.PASSIVES.dmg.pen && !D.PASSIVES.dmg.down, "力量已无任何代价");
+ok(!D.PASSIVES.rage.pen && !D.PASSIVES.rage.down, "狂怒已无任何代价");
+const penKeys = Object.keys(D.PASSIVES).filter(k => D.PASSIVES[k].pen);
+ok(penKeys.length === 8, "带代价的被动只剩 8 条", penKeys.join(","));
+ok(!penKeys.includes("dmg") && !penKeys.includes("rage"), "力量与狂怒都不在其中");
+// 纯收益的被动必须连 down 字段一起删掉，否则说明面板还会渲染出"代价："那一行
+const halfClean = Object.keys(D.PASSIVES).filter(k => (D.PASSIVES[k].pen && !D.PASSIVES[k].down) || (!D.PASSIVES[k].pen && D.PASSIVES[k].down));
+ok(halfClean.length === 0, "pen 与 down 要么都有、要么都没有", halfClean.join(","));
+
+const fr1 = D.WEAPONS.frost.stat(1), fr8 = D.WEAPONS.frost.stat(8);
+const oldFrost = (l) => ({ cd: Math.max(1.2, 3.6 - l * 0.26), dmg: 5 + l * 3.4, slow: 0.35 + l * 0.04, slowT: 1.4 + l * 0.2 });
+ok(fr1.cd < oldFrost(1).cd && fr8.cd < oldFrost(8).cd, "冰霜新星冷却缩短（Lv1 " + oldFrost(1).cd.toFixed(2) + "→" + fr1.cd.toFixed(2) + "s，Lv8 " + oldFrost(8).cd.toFixed(2) + "→" + fr8.cd.toFixed(2) + "s）");
+ok(fr1.slow > oldFrost(1).slow && fr8.slow > oldFrost(8).slow, "减速更强（Lv1 " + oldFrost(1).slow.toFixed(2) + "→" + fr1.slow.toFixed(2) + "，Lv8 " + oldFrost(8).slow.toFixed(2) + "→" + fr8.slow.toFixed(2) + "）");
+ok(fr1.slowT > oldFrost(1).slowT && fr8.slowT > oldFrost(8).slowT, "减速更久（Lv1 " + oldFrost(1).slowT.toFixed(2) + "→" + fr1.slowT.toFixed(2) + "s）");
+ok(fr1.dmg > oldFrost(1).dmg && fr8.dmg > oldFrost(8).dmg, "伤害上调（Lv1 " + oldFrost(1).dmg + "→" + fr1.dmg + "）");
+
+sec("14. 四件新武器：喷火器 / 冲锋枪 / 信号枪 / 分裂");
+ok(Object.keys(D.WEAPONS).length === 25, "武器总数 21 → 25", Object.keys(D.WEAPONS).length);
+for (const k of ["flame", "smg", "flare", "split"]) {
+  ok(D.WEAPONS[k] && D.WEAPONS[k].max === 8, k + " 在武器表里，上限 Lv8");
+  ok(!D.WEAPONS[k].carry && !D.WEAPONS[k].down, k + " 没有任何携带代价");
+  ok(typeof D.WEAPONS[k].desc() === "string" && D.WEAPONS[k].desc().length > 8, k + " 有说明文案");
+}
+ok(D.WEAPONS.flame.stat(1).cd === undefined, "喷火器是常驻型，没有 cd 字段");
+ok(D.WEAPONS.smg.ammo === true && D.WEAPONS.smg.stat(1).cap === 30, "冲锋枪是弹匣武器，30 发一匣");
+ok(D.WEAPONS.split.stat(8).count > D.WEAPONS.split.stat(1).count, "分裂弹等级越高裂得越多",
+   D.WEAPONS.split.stat(1).count + " → " + D.WEAPONS.split.stat(8).count);
+
+D.reset(["master"]);
+const q = G.players[0];
+clearPassives(q);
+
+/* --- 喷火器：持续伤害 + 灼烧留在身上 --- */
+q.weapons.length = 0; clearPassives(q);
+G.enemies.length = 0; G.bullets.length = 0; G.zones.length = 0;
+D.giveWeapon(q, "flame");
+run(3);
+G.enemies.length = 0;                       // 让刷怪器先跑，免得待会儿抢了索引 0
+D.spawnEnemy("slime", q.x + 42, q.y - 8, 1, 1, 1);
+const fo = G.enemies[0]; fo.hp = 100000; fo.spd = 0;
+const foHp = fo.hp;
+run(50);
+ok(fo.hp < foHp, "喷火器持续烧掉了血", (foHp - fo.hp).toFixed(1) + " 点");
+ok(fo.burn > 0, "被烧到的敌人身上挂着灼烧计时", (fo.burn || 0).toFixed(2) + "s");
+fo.x = q.x + 200; fo.y = q.y;       // 挪出火舌（射程 68.5），但别超出 640 的回收距离
+const foHp2 = fo.hp;
+run(30);
+ok(fo.hp < foHp2, "跑出火舌之后仍在继续烧", (foHp2 - fo.hp).toFixed(1) + " 点");
+
+/* --- 冲锋枪：真的打出子弹、弹匣真的在掉 --- */
+q.weapons.length = 0; G.enemies.length = 0; G.bullets.length = 0;
+D.giveWeapon(q, "smg");
+D.spawnEnemy("slime", q.x + 80, q.y - 8, 1, 1, 1);
+G.enemies[0].hp = 100000; G.enemies[0].spd = 0;
+run(4);
+const smgN = G.bullets.filter(b => b.type === "smg").length;
+ok(smgN > 0, "冲锋枪打出了子弹", smgN + " 发在飞");
+ok(q.weapons[0].ammo < 30, "弹匣在消耗", q.weapons[0].ammo + " / 30");
+
+/* --- 信号枪：落地成标记区，并在范围内持续叫炮 --- */
+q.weapons.length = 0; G.enemies.length = 0; G.bullets.length = 0; G.zones.length = 0;
+D.giveWeapon(q, "flare");
+run(40);
+ok(G.zones.some(z => z.type === "flare"), "信号弹落地后生成了标记区");
+// 直接架一个标记区，验证它真的会往圈里叫炮、炮真的会砸到人
+G.zones.length = 0; G.enemies.length = 0;
+const fx = q.x + 120, fy = q.y;
+G.zones.push({ type: "flare", x: fx, y: fy, r: 90, dmg: 60, rate: 0.3, tick: 0, t: 0, life: 6, hit: true, own: 0 });
+D.spawnEnemy("slime", fx, fy, 1, 1, 1);
+const ft = G.enemies[0]; ft.hp = 100000; ft.spd = 0;
+run(2);
+let shellSeen = 0;
+const ftHp = ft.hp;
+for (let i = 0; i < 120; i++) { run(1); if (G.zones.some(z => z.type === "shell")) shellSeen++; }
+ok(shellSeen > 0, "标记区在持续叫炮（" + shellSeen + " 帧里看到了来袭炮弹）");
+ok(ft.hp < ftHp, "标记区里的敌人被炮击压制", (ftHp - ft.hp).toFixed(1) + " 点");
+ok(G.zones.some(z => z.type === "flare"), "标记区活满自己的持续时间才消失");
+
+/* --- 分裂：大子弹命中后炸成一圈小子弹 --- */
+q.weapons.length = 0; G.enemies.length = 0; G.bullets.length = 0; G.zones.length = 0;
+D.giveWeapon(q, "split");
+D.spawnEnemy("slime", q.x + 70, q.y - 8, 1, 1, 1);
+const sp = G.enemies[0]; sp.hp = 100000; sp.spd = 0;
+run(3);
+ok(G.bullets.some(b => b.type === "split"), "分裂弹已经出膛");
+run(40);
+const frags = G.bullets.filter(b => b.type === "frag").length;
+ok(frags > 0, "命中后炸开成小子弹", frags + " 片碎片");
+ok(!G.bullets.some(b => b.type === "split"), "大子弹本体已经消失（不重复裂）");
+
+sec("15. 新武器全部进得了升级池，说明面板写进了它们");
+const offeredW = {};
+for (let i = 0; i < 600; i++) for (const o of D.buildOptions(q)) if (o.kind === "w") offeredW[o.key] = 1;
+const missW = Object.keys(D.WEAPONS).filter(k => !offeredW[k]);
+ok(missW.length === 0, "25 件武器全部能被抽到", missW.join(","));
+let help2 = "";
+try { D.buildHelp(); help2 = globalThis.__DOC.getElementById("helpBody").innerHTML || ""; } catch (e) { console.log("  (buildHelp 抛异常: " + e.message + ")"); }
+ok(help2.includes("喷火器") && help2.includes("冲锋枪") && help2.includes("信号枪") && help2.includes("分裂"),
+   "机制说明里列出了四件新武器");
+ok(!/已经改成纯收益|维持原样|已加强|削了速度|被限流|不再自带任何代价/.test(help2),
+   "机制说明里不再有「改版说明」式的过时措辞（改成描述当前玩法）");
+ok(help2.includes("25 种"), "说明面板的武器计数自动跟到 25");
 
 sec("结果");
 console.log("  通过 " + pass + " 项，失败 " + fail + " 项");

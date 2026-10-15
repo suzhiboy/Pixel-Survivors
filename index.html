@@ -8,7 +8,7 @@
      所以双击本地文件就能玩，丢到 GitHub Pages / itch.io / 任意静态托管也照样跑。 -->
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNicgZmlsbD0nIzBmMGIxYycvPjxyZWN0IHg9JzIuNScgeT0nMi41JyB3aWR0aD0nMjcnIGhlaWdodD0nMjcnIHJ4PSc0LjUnIGZpbGw9J25vbmUnIHN0cm9rZT0nIzNhMmY2MCcgc3Ryb2tlLXdpZHRoPScyJy8+PHBhdGggZD0nTTE2IDUuNWwyLjkgNy42IDcuNiAyLjktNy42IDIuOS0yLjkgNy42LTIuOS03LjZMNS41IDE2bDcuNi0yLjl6JyBmaWxsPScjZmZjZjVjJy8+PGNpcmNsZSBjeD0nMTYnIGN5PScxNicgcj0nMi40JyBmaWxsPScjZmZmN2Q4Jy8+PC9zdmc+">
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNicgZmlsbD0nIzBmMGIxYycvPjxyZWN0IHg9JzIuNScgeT0nMi41JyB3aWR0aD0nMjcnIGhlaWdodD0nMjcnIHJ4PSc0LjUnIGZpbGw9J25vbmUnIHN0cm9rZT0nIzNhMmY2MCcgc3Ryb2tlLXdpZHRoPScyJy8+PHBhdGggZD0nTTE2IDUuNWwyLjkgNy42IDcuNiAyLjktNy42IDIuOS0yLjkgNy42LTIuOS03LjZMNS41IDE2bDcuNi0yLjl6JyBmaWxsPScjZmZjZjVjJy8+PGNpcmNsZSBjeD0nMTYnIGN5PScxNicgcj0nMi40JyBmaWxsPScjZmZmN2Q4Jy8+PC9zdmc+">
-<meta name="description" content="像素幸存者 —— 单文件像素风幸存者类游戏。21 种武器、20 种被动、6 张地图、5 档难度、8 个角色，支持本地双人同屏。打开网页即玩，无需安装。">
+<meta name="description" content="像素幸存者 —— 单文件像素风幸存者类游戏。25 种武器、20 种被动、6 张地图、5 档难度、8 个角色，支持本地双人同屏。打开网页即玩，无需安装。">
 <meta name="theme-color" content="#0b0819">
 <meta name="color-scheme" content="dark">
 <meta name="format-detection" content="telephone=no">
@@ -907,7 +907,7 @@
     { key: "plain", name: "普通人", icon: "人", color: "#c8ccd8", weapon: "knife", flat: true,
       up: "无加成", down: "无代价",
       mods: {}, unlock: null,
-      desc: "没有天赋，也没有代价。所有成长都来自升级选择 —— 最纯粹的基准线。" },
+      desc: "没有天赋，也没有代价。你能走多远，全看每一级怎么选。" },
     { key: "ranger", name: "游侠", icon: "侠", color: "#4bc8ff", weapon: "knife",
       up: "移速 +12%，闪避 8%", down: "最大生命 -10%",
       mods: { spd: 0.12, hp: -0.10, dodge: 0.08 }, unlock: null,
@@ -916,7 +916,7 @@
       up: "移速 +28%，暴击 +12%，闪避 20%", down: "伤害 -22%",
       mods: { spd: 0.28, crit: 0.12, dmg: -0.22, dodge: 0.20 },
       unlock: { type: "time", v: 180, txt: "存活 3 分钟" },
-      desc: "快到极致。闪避拉满，代价是拳头软。" },
+      desc: "全场跑得最快，也最不经打。赢法只有一个：别被摸到。" },
     { key: "scholar", name: "秘法师", icon: "秘", color: "#c9a7ff", weapon: "bolt",
       up: "拾取 +70%，经验 +25%，护甲 10%", down: "攻击频率 -18%",
       mods: { magnet: 0.70, exp: 0.25, rate: -0.18, armor: 0.10 },
@@ -936,7 +936,7 @@
       up: "暴击 +18%，暴伤 +120%，闪避 14%", down: "生命 -20%，伤害 -12%",
       mods: { crit: 0.18, critDmg: 1.20, hp: -0.20, dmg: -0.12, dodge: 0.14 },
       unlock: { type: "time", v: 420, txt: "存活 7 分钟" },
-      desc: "把命运押在骰子上 —— 闪避也是赌的一环。" },
+      desc: "把命押在骰子上。连躲不躲得开，都算一次掷骰。" },
     // 武器大师重做：不再是"伤害 -15% / 永久无法暴击 / 攻速 +18%"，
     // 而是"开局 10 个武器槽 + 每多带一件武器 伤害 +4% / 攻击频率 -1%"。
     // 因为三条修正全部取消，这里挂 flat 让卡面按"无代价"渲染。
@@ -962,7 +962,7 @@
       ramp: [[0.00, [30, 64, 37]], [0.38, [43, 87, 47]], [0.70, [58, 108, 57]], [1.00, [78, 130, 66]]],
       dry: [104, 108, 52], dirt: [88, 70, 46], dirt2: [68, 54, 36],
       deco: "grass", mote: "#cfe4ff", ember: "#b6ff6a", emberRate: 0.14, tag: "无修正",
-      mod: {}, modTxt: "无任何修正 · 其它地图的对照基准"
+      mod: {}, modTxt: "无任何修正 · 其它地图都以它为基准"
     },
     desert: {
       name: "焦沙荒漠", icon: "沙", acc: "#ffcf5c", bg: "#2b2317", vig: [22, 12, 4],
@@ -1017,7 +1017,7 @@
       modTxt: "敌人生命 -15% · 伤害 -15% · 刷怪 -10% · 经验 -10%" },
     { key: "normal", name: "普通", icon: "二", acc: "#5cc8ff", tag: "生命 ×1.0", sub: "基准",
       mod: {},
-      modTxt: "标准难度 —— 所有修正都是 1.0，用作其它档位的对照" },
+      modTxt: "标准难度，所有修正都是 1.0" },
     { key: "hard", name: "艰险", icon: "三", acc: "#ffcf5c", tag: "生命 ×1.25", sub: "熟练",
       mod: { ehp: 1.25, edmg: 1.15, espd: 1.06, spawn: 1.15, exp: 1.20 },
       modTxt: "敌人生命 +25% · 伤害 +15% · 移速 +6% · 刷怪 +15% · 经验 +20%" },
@@ -1047,7 +1047,7 @@
   }
 
   /* =========================================================
-   *  3. 武器（12 种）
+   *  3. 武器（25 种）
    * ========================================================= */
   const WEAPONS = {
     knife: { name: "飞刀", icon: "刀", color: "#dfe9ff", max: 8,
@@ -1069,8 +1069,9 @@
       desc: () => "向四周掷出无限穿透的手里剑",
       stat: (l) => ({ cd: Math.max(0.34, 1.1 - l * 0.09), dmg: 5 + l * 2.4, count: 2 + Math.floor(l * 0.7), speed: 230, pierce: 99 }) },
     frost: { name: "冰霜新星", icon: "冰", color: "#9fe8ff", max: 8,
-      desc: () => "冻结四周，减速敌人并造成伤害",
-      stat: (l) => ({ cd: Math.max(1.2, 3.6 - l * 0.26), dmg: 5 + l * 3.4, radius: 40 + l * 6, slow: 0.35 + l * 0.04, slowT: 1.4 + l * 0.2 }) },
+      desc: () => "冻结四周，减速敌人并造成伤害。等级越高，冻得越勤、也冻得越死",
+      stat: (l) => ({ cd: Math.max(0.7, 2.5 - l * 0.21), dmg: 6 + l * 3.8, radius: 40 + l * 6,
+                      slow: 0.45 + l * 0.05, slowT: 1.8 + l * 0.25 }) },
     missile: { name: "追踪弹", icon: "追", color: "#ff9ecb", max: 8,
       desc: () => "自动追踪敌人，命中即消失",
       stat: (l) => ({ cd: Math.max(0.42, 1.05 - l * 0.075), dmg: 9 + l * 4.2, count: 1 + Math.floor(l / 2), speed: 175 }) },
@@ -1124,20 +1125,41 @@
       stat: (l) => ({ cd: 0.17, dmg: 6 + l * 3.0, pellets: 3 + Math.floor(l * 0.9), spread: 0.52, speed: 265, life: 0.42, cap: 6, reload: Math.max(0.95, 2.5 - l * 0.17) }) },
     revolver: { name: "左轮手枪", icon: "轮", color: "#e8d9a0", max: 8, ammo: true,
       desc: () => "自动瞄准最近的敌人，速射高伤穿透弹，6 发后换弹",
-      stat: (l) => ({ cd: 0.15, dmg: 20 + l * 10, pierce: 1 + Math.floor(l / 2), speed: 430, cap: 6, reload: Math.max(1.0, 2.7 - l * 0.18) }) }
+      stat: (l) => ({ cd: 0.15, dmg: 20 + l * 10, pierce: 1 + Math.floor(l / 2), speed: 430, cap: 6, reload: Math.max(1.0, 2.7 - l * 0.18) }) },
+    // —— 第三批：一把持续型、三把弹道型 ——
+    // 喷火器是常驻型（和 orbit / aura / beam 一样不进 cd 节拍）：
+    // rate 是"同一片火舌对同一个敌人的再命中间隔"，burn / burnT 是点着之后
+    // 离开火舌仍然继续烧的每秒伤害与持续时间
+    flame: { name: "喷火器", icon: "焰", color: "#ff7a2f", max: 8,
+      desc: () => "朝最近的敌人持续喷火。火舌上的敌人当场掉血，逃出去之后还会再烧一会儿",
+      stat: (l) => ({ dmg: 2.6 + l * 1.5, range: 64 + l * 4.5, arc: 0.6 + l * 0.03,
+                      rate: 0.14, burn: 3.2 + l * 1.9, burnT: 1.6 + l * 0.18 }) },
+    smg: { name: "冲锋枪", icon: "锋", color: "#cfe4ff", max: 8, ammo: true,
+      desc: () => "自动瞄准最近的敌人倾泻子弹，30 发一匣，打空后短促换弹",
+      stat: (l) => ({ cd: Math.max(0.06, 0.115 - l * 0.007), dmg: 4.4 + l * 2.1, spread: 0.11,
+                      pierce: 1 + Math.floor(l / 5), speed: 420, cap: 30,
+                      reload: Math.max(0.75, 1.9 - l * 0.13) }) },
+    flare: { name: "信号枪", icon: "号", color: "#ff4d4d", max: 8,
+      desc: () => "在脚边打出一发信号弹，照亮一大片区域并把它标记出来；接下来几秒火炮会持续砸进这片范围",
+      stat: (l) => ({ cd: Math.max(2.5, 6.6 - l * 0.46), dmg: 15 + l * 8, radius: 64 + l * 7,
+                      dur: 3.4 + l * 0.36, rate: 0.44, speed: 150 }) },
+    split: { name: "分裂", icon: "裂", color: "#a8e05f", max: 8,
+      desc: () => "发射一枚大子弹，命中后朝四面八方炸开一圈小子弹",
+      stat: (l) => ({ cd: Math.max(0.72, 2.1 - l * 0.16), dmg: 16 + l * 8,
+                      count: 3 + Math.floor(l * 0.7), sdmg: 7 + l * 3.2,
+                      speed: 210, sspeed: 250 }) }
   };
 
   /* =========================================================
    *  4. 被动（20 种 · 上限统一 Lv10）
    *     desc = 每级的收益   down = 每级的代价文案   pen = 代价的数值
    *     代价逐级累积，在 stats() / maxHpOf() 里统一结算
-   *     注意：带代价的只是其中一部分 —— 磁石 / 穿透 / 荆棘 / 疾靴 / 疾风 /
-   *     体魄 / 护盾 / 灵巧 这 8 条已经改成纯收益（见 down/pen 的缺席）
+   *     只有一部分被动带代价。纯收益的那批（力量 / 疾风 / 疾靴 / 体魄 / 磁石 /
+   *     铁壁 / 灵巧 / 穿透 / 荆棘 / 反震 / 护盾）连 down 字段都没有
    * ========================================================= */
   const PASSIVES = {
     dmg: { name: "力量", icon: "力", color: "#ff6b8a", max: 10,
-      desc: () => "所有伤害 +10%",
-      down: "攻速 -3%", pen: { rate: 0.03 } },
+      desc: () => "所有伤害 +10%" },
     rate: { name: "疾风", icon: "风", color: "#8affd6", max: 10,
       desc: () => "攻击频率 +10%" },
     speed: { name: "疾靴", icon: "靴", color: "#4bc8ff", max: 10,
@@ -1183,8 +1205,7 @@
     reflect: { name: "反震", icon: "震", color: "#c8d4e8", max: 10,
       desc: () => "受到的伤害 -3%，受伤时按当前护甲对周围敌人反弹伤害（护甲% ×80）" },
     rage: { name: "狂怒", icon: "怒", color: "#ff2e4d", max: 10,
-      desc: () => "生命越低伤害越高，满级残血最多 +90%",
-      down: "最大生命 -4%", pen: { hp: 0.04 } },
+      desc: () => "生命越低伤害越高，满级残血最多 +90%" },
     shield: { name: "护盾", icon: "盾", color: "#9fe8ff", max: 10,
       desc: () => "每 15 秒（每级 -1.25 秒）获得一次完全格挡" },
     reap: { name: "收割", icon: "割", color: "#ff8a3d", max: 10,
@@ -2253,7 +2274,7 @@
       Snd.beep(1400, 0.12, "sawtooth", 0.04, 300);
     } else if (slot.key === "frost") {
       const rr = s.radius * area;
-      G.zones.push({ type: "frost", x: p.x, y: p.y - 6, r: rr, dmg: dmg, slow: Math.min(0.7, s.slow), slowT: s.slowT, t: 0, life: 0.45, hit: false });
+      G.zones.push({ type: "frost", x: p.x, y: p.y - 6, r: rr, dmg: dmg, slow: Math.min(0.75, s.slow), slowT: s.slowT, t: 0, life: 0.45, hit: false });
       Snd.ice();
     } else if (slot.key === "mine") {
       if (G.mines.length < s.cap) {
@@ -2373,8 +2394,36 @@
         });
       }
       Snd.beep(1400, 0.1, "sine", 0.03, 520);
+    } else if (slot.key === "smg") {
+      // 自动瞄准最近的敌人，每发带一点散布 —— 近身压制，不打远
+      const my = p.y - 8;
+      const dirA = aimAngle(p.x, my, 300, p);
+      const a = dirA + rnd(-s.spread, s.spread);
+      G.bullets.push({ type: "smg", x: p.x, y: my, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
+                       dmg: dmg, pierce: s.pierce + st.pierce, life: 0.8, r: 2, hit: [] });
+      addPart(p.x + Math.cos(dirA) * 11, my + Math.sin(dirA) * 11, "#e8f0ff", 2, 70, 0.1, { k: "spark", sz: 1 });
+      Snd.beep(720, 0.03, "square", 0.022, 380);
+      spendAmmo(slot, s);
+    } else if (slot.key === "flare") {
+      // "在身边"打出去：引信很短，落点就在脚边，不会飞到敌人堆里去
+      const my = p.y - 8;
+      const a = (p.face > 0 ? 0 : Math.PI) + rnd(-0.9, 0.9);
+      G.bullets.push({
+        type: "throw", x: p.x, y: my, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
+        r: 4, t: 0, spin: 0, fuse: 0.3, drag: 0.86, col: "#ff4d4d",
+        land: { type: "flare", x: 0, y: 0, r: s.radius * area, dmg: dmg,
+                rate: s.rate, tick: 0, t: 0, life: s.dur, hit: true }
+      });
+      Snd.beep(1100, 0.18, "sawtooth", 0.04, 320);
+    } else if (slot.key === "split") {
+      const my = p.y - 8;
+      const a = aimAngle(p.x, my, 300, p);
+      G.bullets.push({ type: "split", x: p.x, y: my, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
+                       dmg: dmg, sdmg: s.sdmg * st.dmgMul, count: s.count, sspeed: s.sspeed,
+                       pierce: 1 + st.pierce, life: 2.2, r: 6, spin: 0, hit: [] });
+      Snd.beep(320, 0.12, "square", 0.04, 760);
     }
-    /* orbit / aura / beam 为持续型，在 updateWeapons 中结算 */
+    /* orbit / aura / beam / flame 为持续型，在 updateWeapons 中结算 */
   }
 
   // 弹匣消耗：打空进入换弹
@@ -2446,6 +2495,52 @@
       // 十字光束：常驻型武器，和 orbit / aura 一样在 updateWeapons 里结算，
       // 不进下面那套"按 cd 开火"的节拍 —— 它只负责把十字架起来，之后就一直在
       if (slot.key === "beam") { ensureBeam(p); continue; }
+      // 喷火器：同样是常驻型。喷口朝向平滑跟随最近的敌人，所以它是"扫过去"而不是"瞬移"
+      if (slot.key === "flame") {
+        const my = p.y - 8;
+        if (p.flameA == null) p.flameA = p.face > 0 ? 0 : Math.PI;
+        const tgt = nearestEnemy(p.x, my, s.range + 40);
+        const want = tgt ? Math.atan2(tgt.y - my, tgt.x - p.x) : (p.face > 0 ? 0 : Math.PI);
+        let df = want - p.flameA;
+        while (df > Math.PI) df -= TAU;
+        while (df < -Math.PI) df += TAU;
+        p.flameA = p.flameA + clamp(df, -7 * dt, 7 * dt);
+
+        // 火舌粒子：沿喷射方向铺一条由粗到细的锥
+        if (G.parts.length < 300 && Math.random() < 0.9) {
+          const rr = s.range * area * rnd(0.25, 1);
+          const spread = s.arc * 0.5 * (rr / (s.range * area)) * rnd(-1, 1);
+          const fa = p.flameA + spread;
+          addPart(p.x + Math.cos(fa) * rr, my + Math.sin(fa) * rr,
+                  Math.random() < 0.45 ? "#ffd166" : (Math.random() < 0.5 ? "#ff7a2f" : "#ff4d1a"),
+                  1, 26, rnd(0.18, 0.34), { k: "spark", sz: 2, drag: 0.9 });
+        }
+
+        slot.t -= dt;
+        if (slot.t > 0) continue;
+        slot.t = s.rate / st.rateMul;
+        const rr = s.range * area;
+        const list = query(p.x, my, rr + 14);
+        for (let j = 0; j < list.length; j++) {
+          const e = list[j]; if (e.dead) continue;
+          const dx = e.x - p.x, dy = e.y - my;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d > rr + e.r) continue;
+          let af = Math.atan2(dy, dx) - p.flameA;
+          while (af > Math.PI) af -= TAU;
+          while (af < -Math.PI) af += TAU;
+          // 贴近的敌人放宽角度容差，和巨镰的扇形判定同一套写法
+          if (Math.abs(af) > s.arc * 0.5 + Math.atan2(e.r, Math.max(6, d))) continue;
+          const crit = Math.random() < st.crit;
+          damage(e, s.dmg * st.dmgMul * (crit ? st.critDmg : 1), crit, p);
+          // 点着：取更疼的那一份，持续时间取更长的
+          const bd = s.burn * st.dmgMul;
+          if (!(e.burnD > 0) || bd > e.burnD) e.burnD = bd;
+          e.burn = Math.max(e.burn || 0, s.burnT);
+          e.burnBy = p;
+        }
+        continue;
+      }
       slot.t -= dt;
       if (slot.t <= 0) {
         slot.t = s.cd / st.rateMul;
@@ -2462,6 +2557,24 @@
   /* =========================================================
    *  14. 玩家子弹 / 地雷 / 光束
    * ========================================================= */
+  // 分裂弹炸开：朝四面八方铺一圈小子弹。
+  // 用的是"均分一圈 + 抖动"，不是纯随机角 —— 纯随机会出现几发叠在同一条线上，
+  // 看起来像少了几个方向
+  function splitBurst(b, p, st) {
+    const n = Math.max(1, b.count | 0);
+    const base = rnd(0, TAU);
+    for (let k = 0; k < n; k++) {
+      const a = base + (k / n) * TAU + rnd(-0.14, 0.14);
+      G.bullets.push({
+        type: "frag", x: b.x, y: b.y, vx: Math.cos(a) * b.sspeed, vy: Math.sin(a) * b.sspeed,
+        dmg: b.sdmg, pierce: 1 + (st ? st.pierce : 0), life: 0.62, r: 3, hit: [], own: b.own
+      });
+    }
+    addPart(b.x, b.y, "#a8e05f", 12, 110, 0.26, { k: "spark", sz: 2, drag: 0.86 });
+    if (G.zones.length < 40) G.zones.push({ type: "ring", x: b.x, y: b.y, r: 22, c: "#a8e05f", n: 14, t: 0, life: 0.22, hit: true });
+    Snd.beep(240, 0.1, "square", 0.035, 900);
+  }
+
   function updateBullets(dt) {
     for (let i = G.bullets.length - 1; i >= 0; i--) {
       const b = G.bullets[i];
@@ -2485,6 +2598,7 @@
         }
         if (land) {
           b.land.x = b.x; b.land.y = b.y;
+          b.land.own = b.own;            // 落地的区域也要认人，否则双人时伤害算到 1P 头上
           G.zones.push(b.land);
           addPart(b.x, b.y, b.col, 10, 74, 0.34, { k: "spark", g: true, sz: 2, drag: 0.9 });
           if (G.zones.length < 40) G.zones.push({ type: "ring", x: b.x, y: b.y, r: b.land.r * 0.7, c: b.col, n: 16, t: 0, life: 0.28, hit: true });
@@ -2572,10 +2686,14 @@
           if (d < 12) { G.bullets.splice(i, 1); continue; }
         }
       } else if (b.type === "shuriken") b.spin += dt * 18;
+      else if (b.type === "split") b.spin += dt * 7;
       else if (b.type === "fire" && Math.random() < 0.6) addPart(b.x, b.y, Math.random() < 0.5 ? "#ff8a3d" : "#ffd166", 1, 12, 0.22);
 
       b.x += b.vx * dt; b.y += b.vy * dt;
-      if (b.life <= 0 || Math.abs(b.x - p.x) > 460 || Math.abs(b.y - p.y) > 340) { G.bullets.splice(i, 1); continue; }
+      if (b.life <= 0 || Math.abs(b.x - p.x) > 460 || Math.abs(b.y - p.y) > 340) {
+        if (b.type === "split") splitBurst(b, p, st);   // 飞完射程也一样炸开
+        G.bullets.splice(i, 1); continue;
+      }
 
       const list = query(b.x, b.y, b.r + 12);
       for (let j = 0; j < list.length; j++) {
@@ -2584,6 +2702,14 @@
           b.hit.push(e);
           if (b.type === "fire") {
             explode(b.x, b.y, b.radius, b.dmg, "#ff8a3d", false, p);
+            G.bullets.splice(i, 1);
+            break;
+          }
+          if (b.type === "split") {
+            // 大子弹本体也要算一次伤害，然后再散开
+            const c2 = Math.random() < st.crit;
+            damage(e, b.dmg * (c2 ? st.critDmg : 1), c2, p);
+            splitBurst(b, p, st);
             G.bullets.splice(i, 1);
             break;
           }
@@ -2792,6 +2918,23 @@
         }
       }
 
+      // 信号弹标记区：亮着一片大范围，并在这段时间里不停地叫炮
+      if (z.type === "flare") {
+        z.tick -= dt;
+        if (z.tick <= 0) {
+          z.tick = z.rate / st.rateMul;
+          // 落点用 sqrt 取样，圆内才是均匀分布；直接 rnd(0,r) 会全挤在圆心
+          const a = rnd(0, TAU), dd = Math.sqrt(Math.random()) * z.r * 0.86;
+          G.zones.push({
+            type: "shell", x: z.x + Math.cos(a) * dd, y: z.y + Math.sin(a) * dd,
+            r: 22 + z.r * 0.16, dmg: z.dmg, t: 0, life: 0.6, hit: false, own: z.own
+          });
+        }
+        if (G.parts.length < 300 && Math.random() < 0.5 * dt60) {
+          addPart(z.x + rnd(-z.r, z.r) * 0.9, z.y + rnd(-z.r, z.r) * 0.9, "#ff4d4d", 1, 20, 0.5, { k: "smoke", sz: 2, drag: 0.92 });
+        }
+      }
+
       // 奇点：把范围内的敌人拽向中心
       if (z.type === "pull") {
         const list = query(z.x, z.y, z.r + 46);
@@ -2860,11 +3003,42 @@
           G.shake = Math.max(G.shake, 2.5);
         } else if (z.type === "warn") {
           /* 预警圈：由 BOSS nova 创建，到期时结算 */
+        } else if (z.type === "flare") {
+          // 落地那一下自己也有个小爆，然后才开始叫炮
+          addPart(z.x, z.y, "#ff4d4d", 20, 120, 0.4);
+          Snd.beep(1500, 0.2, "sine", 0.045, 600);
+          G.shake = Math.max(G.shake, 3);
+          const list = query(z.x, z.y, 46);
+          for (let j = 0; j < list.length; j++) {
+            const e = list[j]; if (e.dead) continue;
+            if (dist2(z.x, z.y, e.x, e.y) <= (46 + e.r) * (46 + e.r)) {
+              const crit = Math.random() < st.crit;
+              damage(e, z.dmg * 0.6 * (crit ? st.critDmg : 1), crit, ow);
+            }
+          }
         }
       }
       if (z.type === "pull" && z.t >= z.life) {
         // 奇点塌缩：把吸拢的敌人一次性炸掉
         explode(z.x, z.y, z.r * 1.25, z.dmg, "#b48cff", false, ow);
+        G.zones.splice(i, 1);
+        continue;
+      }
+      // 炮弹落地：范围内一次性重击。走自己的分支而不是复用 explode()，
+      // 是因为信号枪一局能叫下来几十发，每发都带 G.shake 与 boom 音会把画面和耳朵都打糊
+      if (z.type === "shell" && z.t >= z.life) {
+        addPart(z.x, z.y, "#ff8a3d", 14, 100, 0.3, { k: "spark", g: true, sz: 2, drag: 0.88 });
+        G.zones.push({ type: "boom", x: z.x, y: z.y, r: z.r, t: 0, life: 0.24, hit: false, own: z.own });
+        G.shake = Math.max(G.shake, 3.2);
+        Snd.beep(120, 0.13, "square", 0.032, 46);
+        const sl = query(z.x, z.y, z.r + 12);
+        for (let j = 0; j < sl.length; j++) {
+          const e = sl[j]; if (e.dead) continue;
+          if (dist2(z.x, z.y, e.x, e.y) <= (z.r + e.r) * (z.r + e.r)) {
+            const crit = Math.random() < st.crit;
+            damage(e, z.dmg * (crit ? st.critDmg : 1), crit, ow);
+          }
+        }
         G.zones.splice(i, 1);
         continue;
       }
@@ -2970,6 +3144,20 @@
       if (e.touchCd > 0) e.touchCd -= dt;
       if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slow = 0; }
       const slowMul = 1 - clamp(e.slow, 0, 0.75);
+
+      // 灼烧（喷火器点的火）：离开火舌之后继续烧。
+      // 每 0.3 秒结算一次，伤害用的是"点着时记下的那一口"，
+      // 所以从火舌里走出去不等于安全，只是不再加码
+      if (e.burn > 0) {
+        e.burn -= dt;
+        e.burnTick = (e.burnTick || 0) - dt;
+        if (e.burnTick <= 0) {
+          e.burnTick = 0.3;
+          damage(e, (e.burnD || 0) * 0.3, false, e.burnBy || p);
+          if (e.dead) { G.enemies.splice(i, 1); continue; }
+        }
+        if (e.burn <= 0) { e.burn = 0; e.burnD = 0; }
+      }
 
       if (e.knock > 0) { e.knock -= dt; e.x += e.kx * dt; e.y += e.ky * dt; }
 
@@ -4192,6 +4380,17 @@
       ctx.globalAlpha = 1;
       glow(x, y - 4, 12, "#9fe8ff", 0.25);
     }
+    // 灼烧：身上跳着火苗。抖动的相位挂在自己的动画计时上，
+    // 所以一整屏被点着的敌人不会同频闪成一片
+    if (e.burn > 0) {
+      const fl = Math.sin(e.anim * 5.5) ;
+      ctx.globalAlpha = 0.55 + 0.35 * Math.abs(fl);
+      px(x - 4, y - 8 + Math.round(fl * 1.5), 2, 2, "#ffd166");
+      px(x + 3, y - 5 - Math.round(fl * 1.5), 2, 2, "#ff7a2f");
+      px(x - 1, y - 11 + Math.round(fl), 2, 3, "#ff4d1a");
+      ctx.globalAlpha = 1;
+      glow(x, y - 5, 14, "#ff7a2f", 0.2 + 0.12 * Math.abs(fl));
+    }
     // 自爆虫 / 引信
     if (e.type === "suicider") {
       const p = 0.5 + 0.5 * Math.sin(G.time * 9);
@@ -4496,6 +4695,29 @@
         px(-6, -1, 8, 2, "#fff3c4"); px(2, -1, 4, 2, "#e8d9a0");
         px(-6, -1, 8, 1, "#ffffff");
         ctx.restore();
+      } else if (b.type === "smg") {
+        const a = Math.atan2(b.vy, b.vx);
+        glow(x, y, 7, "#cfe4ff", 0.4);
+        ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+        px(-4, -1, 6, 2, "#e8f0ff"); px(-4, -1, 6, 1, "#ffffff"); px(1, -1, 2, 2, "#8a94a8");
+        ctx.restore();
+      } else if (b.type === "split") {
+        glow(x, y, 16, "#a8e05f", 0.55);
+        ctx.save(); ctx.translate(x, y); ctx.rotate(b.spin);
+        px(-5, -5, 10, 10, "#4f7a22");
+        px(-4, -4, 8, 8, "#a8e05f");
+        px(-3, -3, 6, 6, "#d8ffb0");
+        // 四道裂缝：读起来就是"这颗马上要裂开"
+        px(-1, -5, 1, 4, "#2f4d12"); px(-1, 2, 1, 4, "#2f4d12");
+        px(-5, -1, 4, 1, "#2f4d12"); px(2, -1, 4, 1, "#2f4d12");
+        px(-1, -1, 2, 2, "#ffffff");
+        ctx.restore();
+      } else if (b.type === "frag") {
+        const a = Math.atan2(b.vy, b.vx);
+        glow(x, y, 7, "#a8e05f", 0.42);
+        ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+        px(-3, -1, 5, 2, "#d8ffb0"); px(-3, -1, 4, 1, "#ffffff");
+        ctx.restore();
       }
     }
   }
@@ -4744,6 +4966,57 @@
              bb > 0.6 ? "#d8ffb0" : "#8fd14f");
         }
         glow(x, y, z.r * 1.05, "#7fbf3a", 0.26 * fade);
+      } else if (z.type === "flare") {
+        // 高亮标记区：亮底 + 呼吸的警戒圈 + 外圈扫描线，
+        // 目的是让"这里正在被炮击"一眼就能看出来，而不是一片模糊的橙色
+        const fade = clamp(Math.min(z.t / 0.18, (z.life - z.t) / 0.5), 0, 1);
+        const pulse = 0.5 + 0.5 * Math.sin(z.t * 7);
+        ctx.globalAlpha = (0.10 + 0.07 * pulse) * fade;
+        ctx.fillStyle = "#ff4d4d";
+        ctx.beginPath(); ctx.arc(x, y, z.r, 0, TAU); ctx.fill();
+        ctx.globalAlpha = (0.18 + 0.12 * pulse) * fade;
+        ctx.fillStyle = "#ff8a3d";
+        ctx.beginPath(); ctx.arc(x, y, z.r * 0.6, 0, TAU); ctx.fill();
+        // 外圈：断续的粗标记环
+        ctx.globalAlpha = (0.75 + 0.25 * pulse) * fade;
+        const nf = 44;
+        for (let a2 = 0; a2 < nf; a2++) {
+          if (a2 % 6 > 3) continue;
+          const ang = a2 / nf * TAU + z.t * 0.6;
+          const rr2 = z.r * (0.97 + 0.03 * Math.sin(z.t * 5 + a2));
+          px(x + Math.cos(ang) * rr2, y + Math.sin(ang) * rr2, 2, 2, a2 % 2 ? "#ff4d4d" : "#fff3c4");
+        }
+        // 内圈扫描：一圈往里收的细线，像雷达
+        ctx.globalAlpha = 0.5 * fade;
+        const sp = (z.t * 0.75) % 1;
+        const ns = 30;
+        for (let a2 = 0; a2 < ns; a2++) {
+          const ang = a2 / ns * TAU;
+          const rr2 = z.r * (1 - sp);
+          px(x + Math.cos(ang) * rr2, y + Math.sin(ang) * rr2, 1, 1, "#ffb347");
+        }
+        ctx.globalAlpha = 1;
+        glow(x, y, z.r * 1.06, "#ff4d4d", (0.22 + 0.14 * pulse) * fade);
+      } else if (z.type === "shell") {
+        // 来袭的炮弹：外圈收紧 + 中心越来越亮，越接近落地越刺眼
+        const p2 = z.t / z.life;
+        const bl = Math.floor(z.t * 16) % 2 === 0;
+        ctx.globalAlpha = clamp(0.2 + 0.5 * p2, 0, 1);
+        ctx.fillStyle = "#ff4d4d";
+        ctx.beginPath(); ctx.arc(x, y, z.r, 0, TAU); ctx.fill();
+        ctx.globalAlpha = clamp(0.55 + 0.45 * p2, 0, 1);
+        for (let a2 = 0; a2 < 20; a2++) {
+          const ang = a2 / 20 * TAU;
+          const rr2 = z.r * (1.25 - 0.85 * p2);
+          px(x + Math.cos(ang) * rr2, y + Math.sin(ang) * rr2, 2, 2, bl ? "#ff4d4d" : "#ffd166");
+        }
+        // 从画面顶端拖下来的弹道线
+        ctx.globalAlpha = clamp(0.35 + 0.45 * p2, 0, 1);
+        for (let s2 = 1; s2 <= 6; s2++) {
+          px(x - 1, y - z.r * 1.3 - s2 * 5 - p2 * 12, 2, 4, s2 % 2 ? "#ff8a3d" : "#fff3c4");
+        }
+        ctx.globalAlpha = 1;
+        glow(x, y, z.r * (1.1 + 0.5 * p2), "#ff8a3d", 0.3 + 0.5 * p2);
       } else if (z.type === "pull") {
         const p2 = z.t / z.life;
         ctx.globalAlpha = clamp(0.35 + 0.5 * p2, 0, 1);
@@ -4796,6 +5069,38 @@
           px(-2, -7, 4, 3, "#fff3c4"); px(-1, -7, 2, 1, "#ffffff");
           ctx.restore();
         }
+      } else if (slot.key === "flame") {
+        // 火舌本体：一段由窄到宽的锥形，边缘一直在抖。
+        // 判定的形状就是这个锥形，所以画出来的必须和打到的一致
+        const rr = s.range * st.area;
+        const cx = Math.round(p.x - camX), cy = Math.round(p.y - camY - 8);
+        const a0 = p.flameA == null ? 0 : p.flameA;
+        ctx.globalAlpha = 0.17;
+        ctx.fillStyle = "#ff7a2f";
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, rr, a0 - s.arc * 0.5, a0 + s.arc * 0.5);
+        ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 0.14;
+        ctx.fillStyle = "#ffd166";
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, rr * 0.6, a0 - s.arc * 0.34, a0 + s.arc * 0.34);
+        ctx.closePath(); ctx.fill();
+        // 边缘抖动的高温像素：越靠外越稀
+        ctx.globalAlpha = 0.9;
+        const nf = 26;
+        for (let k = 0; k < nf; k++) {
+          const t2 = (k + 1) / nf;
+          const flick = Math.sin(G.time * 26 + k * 2.3) * 0.06;
+          const ang = a0 + (t2 - 0.5) * s.arc * (0.8 + flick);
+          const r2 = rr * t2 * (0.86 + 0.16 * Math.abs(Math.sin(G.time * 17 + k)));
+          const hot = t2 < 0.35;
+          px(cx + Math.cos(ang) * r2, cy + Math.sin(ang) * r2, hot ? 2 : 1, hot ? 2 : 1,
+             t2 < 0.25 ? "#fff3c4" : (t2 < 0.55 ? "#ffd166" : (k % 2 ? "#ff7a2f" : "#ff4d1a")));
+        }
+        ctx.globalAlpha = 1;
+        glow(cx + Math.cos(a0) * rr * 0.5, cy + Math.sin(a0) * rr * 0.5, rr * 0.45, "#ff7a2f", 0.22);
       }
     }
   }
@@ -4813,10 +5118,15 @@
         px(x - w / 2, y, Math.round(w * k), 4, Math.floor(slot.reload * 12) % 2 ? "#ffd166" : "#8a7550");
         px(x - w / 2, y, Math.round(w * k), 1, "#fff3c4");
       } else {
+        // 弹匣小就画成一颗颗子弹，弹匣大（冲锋枪 30 发）就压成细密的一条，
+        // 否则 x 轴会被撑到半个屏幕
+        const big = s.cap > 12;
+        const step = big ? 2 : 3, pw = big ? 1 : 2, ph = big ? 3 : 4;
+        const x0 = x - Math.round(s.cap * step / 2);
         for (let k = 0; k < s.cap; k++) {
           const on = k < slot.ammo;
-          px(x - s.cap * 1.5 + k * 3, y, 2, 4, on ? "#ffd166" : "#3a3358");
-          if (on) px(x - s.cap * 1.5 + k * 3, y, 2, 1, "#fff3c4");
+          px(x0 + k * step, y, pw, ph, on ? "#ffd166" : "#3a3358");
+          if (on && !big) px(x0 + k * step, y, pw, 1, "#fff3c4");
         }
       }
       break;
@@ -5421,11 +5731,9 @@
     for (const q in pen) penBody += row(PEN_NAME[q], penNum(q, pen[q]),
       "渐近线 " + penNum(q, PEN_CAP[q]) + " · 已用 " + Math.round(pen[q] / PEN_CAP[q] * 100) + "%");
     h += sec("代价汇总", penBody
-      ? grid(penBody) + '<div class="dNote">同类代价按 <em>' +
-        'eff = 渐近线 × (1 − e^(−名义值 / 渐近线))</em> 收敛：越接近渐近线每级增量越小，' +
-        '但永远大于 0 —— 所以堆同类被动不会变成白点，只是回报递减。</div>'
-      : '<div class="dNote">当前没有吃到任何代价。只有被动的 pen 会计入这里 —— ' +
-        '武器自带的携带代价（carry）已经在平衡调整里全部取消了。</div>');
+      ? grid(penBody) + '<div class="dNote">同一种代价叠加时不是简单相加：越往上堆，每一级扣得越少，' +
+        '但<em>永远扣得动</em>。右边那一列就是它正在逼近的上限。</div>'
+      : '<div class="dNote">没有吃到任何代价。会付出代价的只有一部分被动，武器一律白拿。</div>');
 
     /* ---- 被动 ---- */
     let pBody = "";
@@ -5446,7 +5754,7 @@
     let wBody = "";
     for (let i = 0; i < p.weapons.length; i++) {
       const w = p.weapons[i], d = WEAPONS[w.key], s = d.stat(w.level);
-      const n = s.count || s.pellets || 1;
+      const n = (w.key === "split" || w.key === "flame") ? 1 : (s.count || s.pellets || 1);
       const bits = [];
       bits.push("期望 " + exp1(s.dmg).toFixed(1) + (n > 1 ? " ×" + n : "") + " /次");
       if (s.cd) bits.push("间隔 " + s.cd.toFixed(2) + "s");
@@ -5456,14 +5764,24 @@
         bits.push("长度 " + Math.round(s.len * st.area));
         bits.push("光刃 " + (w.level * 4) + " 条");
       }
+      // 喷火器同样是常驻型：rate 是"同一片火舌对同一个敌人的再命中间隔"
+      if (w.key === "flame") {
+        bits.push("射程 " + Math.round(s.range * st.area));
+        bits.push("火舌 " + (s.arc * 180 / Math.PI).toFixed(0) + "°");
+        bits.push("灼烧 " + exp1(s.burn * st.dmgMul).toFixed(1) + "/秒 · 持续 " + s.burnT.toFixed(1) + "s");
+        bits.push("同一敌人每 " + s.rate.toFixed(2) + "s 被烧一次");
+      }
+      // 分裂：count 是"炸开几发"，不是一次打几发，所以不走上面的 ×N
+      if (w.key === "split") bits.push("裂成 " + s.count + " 发 · 每发 " + exp1(s.sdmg * st.dmgMul).toFixed(1));
       if (s.spin && w.key !== "beam") bits.push("转速 " + s.spin.toFixed(2));
       if (s.radius) bits.push("半径 " + Math.round(s.radius * st.area));
-      if (s.range) bits.push("射程 " + Math.round(s.range));
+      if (s.range && w.key !== "flame") bits.push("射程 " + Math.round(s.range));
       if (s.jumps) bits.push("跳 " + s.jumps);
       if (s.pierce > 1) bits.push("穿透 " + s.pierce);
       if (s.cap && !d.ammo) bits.push("上限 " + s.cap);   // 弹匣武器的 cap 就是弹匣，下面单独写
-      if (s.rate && w.key !== "beam") bits.push("每秒 " + (1 / s.rate).toFixed(1) + " 次");
+      if (s.rate && w.key !== "beam" && w.key !== "flame") bits.push("每秒 " + (1 / s.rate).toFixed(1) + " 次");
       if (w.key === "beam") bits.push("同一敌人每 " + s.rate.toFixed(2) + "s 被切一次");
+      if (w.key === "flare") bits.push("炮击每 " + s.rate.toFixed(2) + "s 一发 · 压制 " + s.dur.toFixed(1) + "s");
       if (d.ammo) bits.push("弹匣 " + s.cap + " · 换弹 " + s.reload.toFixed(2) + "s");
       // 携带代价：显示"这一件"对代价总额的边际贡献（从总账里去掉它再看差多少）
       if (d.carry) {
@@ -5753,8 +6071,8 @@
       '<li><em>倒下不等于结束</em>：生命归零先进入<em>倒地</em>状态（不能动、不能开火，地上有流血计时），' +
       '队友贴身 <em>' + REVIVE_T + '</em> 秒可以扶起来，回到 40% 生命；' +
       '倒地超过 <em>' + DOWN_T + '</em> 秒没人来扶就<em>出局</em>，剩下那个人继续打</li>' +
-      '<li>两人都倒下或出局，这一局才结束。单人模式里"生命归零 = 结算"<em>完全没变</em></li>' +
-      '<li><em>仇恨各算各的</em>：敌人追谁、敌弹锁谁、别动宝石飞向谁，都按"谁近找谁"独立结算 —— ' +
+      '<li>两人都倒下或出局，这一局才结束。单人模式里生命归零就直接结算</li>' +
+      '<li><em>仇恨各算各的</em>：敌人追谁、敌弹锁谁、掉的宝石飞向谁，都按"谁近找谁"独立结算 —— ' +
       '所以双人走位天然比单人更能拉扯仇恨，但也会把弹幕带到队友脸上</li></ul></div>' +
 
       '<div class="sec"><h3>战斗属性</h3><ul>' +
@@ -5768,16 +6086,15 @@
       '<li><em>移速 / 拾取</em>：走位能力与经验吸附半径</li>' +
       '<li><em>经验 / 再生 / 穿透 / 范围</em>：成长速度、每秒回血、投射物穿透数、所有 AOE 半径</li>' +
       '<li>所有角色<em>初始生命统一为 ' + BASE_HP + ' 点</em>，角色的生命修正、地图/难度修正、被动代价都在这个基数上相乘</li>' +
-      '<li><em>只有一部分被动带代价</em>：加成按级数涨，代价同样按级数累积，而且是<em>全局结算</em>的 —— ' +
-      '例如力量加伤害但拖攻速、嗜血加回复但削最大生命、扩张加范围但削伤害</li>' +
-      '<li><em>磁石 / 穿透 / 荆棘 / 疾靴 / 疾风 / 体魄 / 护盾 / 灵巧 这 8 条已经改成纯收益</em>，' +
-      '取消代价后它们不再有任何副作用，可以放心堆</li>' +
-      '<li><em>所有被动上限统一为 Lv10</em>：每级的数值维持原样，所以满级强度是原来的两倍</li>' +
-      '<li><em>武器不再自带任何代价</em>：巨镰的攻速惩罚、奇点与哨戒炮台的移速惩罚、左轮手枪的拾取范围惩罚' +
-      '已经全部取消。代价结算机制本身还留在代码里，但现在已经没有任何武器在用它</li>' +
-      '<li><em>同类代价按饱和曲线收敛</em>：实际值 = 渐近线 × (1 − e^(−名义值/渐近线))。' +
-      '越接近渐近线每级增量越小，但<em>永远大于 0</em> —— 所以堆同类被动不会变成白点，只是回报递减；' +
-      '反过来"每样都拿一点"也不再是免费的最优解。升级卡面上的红字会同时给出<em>这一级点下去之后的值</em>和渐近线</li>' +
+      '<li><em>有代价的被动只是少数</em>：加成按级数涨，代价也按级数累积，而且是<em>全局结算</em>的 —— ' +
+      '嗜血加回复但削最大生命、扩张加范围但削伤害、收割加爆炸但拖攻速。' +
+      '力量、疾风、疾靴、体魄、磁石、灵巧、穿透、荆棘、护盾、铁壁、反震这一批没有代价，可以放心堆</li>' +
+      '<li><em>被动上限统一 Lv10</em>，20 条被动用同一把尺子量，取舍只在于槽位和什么时候拿</li>' +
+      '<li><em>武器一律白拿</em>：带哪把、带几把，只看槽位够不够，武器本身没有任何隐藏惩罚</li>' +
+      '<li><em>同类代价会互相挤压</em>：同一种代价叠加时不是简单相加，而是越堆越钝。' +
+      '第一级扣得最狠，之后每一级的增量都在变小，但<em>永远大于 0</em>。' +
+      '所以堆同类被动不会变成白点，只是回报递减；反过来"每样都拿一点"也不占便宜。' +
+      '升级卡面上的红字会同时给出<em>这一级点下去之后的值</em>和它正在逼近的上限</li>' +
       '<li><em>回血是有上限的</em>：嗜血按"每次击杀一小口 + 每秒一口上限"结算 —— ' +
       '后期击杀数会涨几十倍，不封顶的话它就成了唯一一个越难越强的回复来源</li>' +
       '<li><em>旋刃按刀锋位置判定</em>：只有刀刃真正扫到的敌人才掉血，' +
@@ -5800,25 +6117,24 @@
 
       '<div class="sec"><h3>武器（' + Object.keys(WEAPONS).length + ' 种）</h3>' +
       '<ul style="margin-bottom:8px">' +
-      '<li><em>十字光束是常驻武器</em>：带上它头顶就一直挂着旋转的十字，不会再"隔一会儿才出现一下"。' +
-      '身边有敌人时一条光刃会自动咬住最近的敌人、其余三条垂直展开，同时仍然缓慢自转，' +
-      '所以敌人绕后也躲不掉。等级 = 十字个数（Lv1 一个十字 / 4 条光刃，Lv2 两个 / 8 条），' +
-      '同一个敌人按固定间隔被反复切割，而不是"打一下就免疫"</li>' +
-      '<li><em>落雷</em>与<em>球状闪电</em>已加强：落雷基础伤害 14→18、每级 +7→+9、冷却 3.4s→2.85s 起步、' +
-      '下限 0.85s→0.68s；球状闪电伤害 5→8、每级 +2.4→+3.4、<em>每 2 级多一颗</em>（原来每 3 级），' +
-      '判定半径、持续时间与放电频率同步上调</li>' +
+      '<li><em>常驻型武器</em>带上就一直生效，不按节拍开火。<em>十字光束</em>是头顶转着一个十字：' +
+      '一条光刃自动咬住最近的敌人、其余三条垂直展开，所以敌人绕后也躲不掉；' +
+      '等级 = 十字个数（Lv1 一个十字 / 4 条光刃，Lv2 两个 / 8 条），同一个敌人按固定间隔被反复切割。' +
+      '<em>喷火器</em>朝最近的敌人喷一条火舌，锥形范围内当场掉血；被烧到的敌人就算跑出火舌，' +
+      '身上还会再烧几秒</li>' +
+      '<li><em>分裂弹</em>命中后朝四面八方炸开一圈小子弹。它的正确用法是打在最前排那只身上，' +
+      '让碎片铺满它身后一整片</li>' +
+      '<li><em>信号枪</em>在脚边落地，圈出一大片高亮标记区，之后几秒里炮弹不断砸进这片范围。' +
+      '它是唯一一件"先划定战场、再往里灌伤害"的武器，配合走位能把一片地变成禁区</li>' +
       '</ul><div class="cols">' + wRows + '</div></div>' +
 
       '<div class="sec"><h3>被动（' + Object.keys(PASSIVES).length + ' 种）</h3><div class="cols">' + pRows + '</div></div>' +
 
       '<div class="sec"><h3>敌人（' + Object.keys(ENEMIES).length + ' 种）</h3>' +
       '<ul style="margin-bottom:8px">' +
-      '<li><em>蝙蝠削了速度</em>：基础移速 66→52（原来只比玩家基础移速 70 慢一点点，' +
-      '再叠上左右穿插就完全甩不掉）。飘忽的机动性<em>原样保留</em>，' +
-      '所以它现在是"难缠"而不是"超标"</li>' +
-      '<li><em>骷髅弓手 / 狙击手被限流</em>：这两类远程怪在刷怪池里的权重下调，' +
-      '并且场上同时存活的数量有<em>软上限</em>（约 5 只，每 75 秒 +1）—— ' +
-      '超了就改刷近战怪，免得出现"屏幕外被点名"的体验</li>' +
+      '<li><em>蝙蝠</em>的基础移速比玩家慢，但飞行轨迹来回穿插 —— 它难缠的地方是甩不干净，不是跑不过</li>' +
+      '<li><em>骷髅弓手 / 狙击手</em>这类远程怪在刷怪池里权重较低，而且场上同时存活的数量有<em>软上限</em>' +
+      '（约 5 只，每 75 秒 +1）—— 超了就改刷近战怪，免得出现"屏幕外被点名"的体验</li>' +
       '</ul><div class="cols">' + eRows + '</div></div>' +
 
       '<div class="sec"><h3>BOSS（' + Object.keys(BOSSES).length + ' 种）</h3><div class="cols">' + bRows + '</div>' +
@@ -5832,7 +6148,7 @@
       '<li><em>' + Math.round(LATE_T / 60) + ' 分钟起进入加档期</em>：生命曲线额外再提一档斜率，' +
         '同时敌人的伤害与移速也不再提前封顶，精英怪比例随时间走高</li>' +
       '<li>升级所需经验同样<em>指数抬头</em>，后期成长会自然减速</li>' +
-      '<li>所以后期不是"越来越轻松"，而是<em>你的成长追不上敌人的成长</em></li></ul></div>';
+      '<li>后期拼的是你的成长能不能压住敌人的成长 —— 而它通常压不住</li></ul></div>';
   }
 
   // heroKeys 可以是字符串（单人）或数组（双人）
