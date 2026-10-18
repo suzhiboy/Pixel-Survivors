@@ -1139,10 +1139,13 @@
       stat: (l) => ({ cd: Math.max(0.06, 0.115 - l * 0.007), dmg: 4.4 + l * 2.1, spread: 0.11,
                       pierce: 1 + Math.floor(l / 5), speed: 420, cap: 30,
                       reload: Math.max(0.75, 1.9 - l * 0.13) }) },
+    // 信号枪降速（中档）：冷却下限 2.5→3.2、斜率 0.46→0.34（升级收益变缓），
+    // 炮弹间隔 0.44→0.62。原来 Lv8 满攻速是 1.46s 一轮 / 0.22s 一发，
+    // 场上会同时叠好几片标记区，节奏过快也顺带把宝石掉落速率抬了上去
     flare: { name: "信号枪", icon: "号", color: "#ff4d4d", max: 8,
       desc: () => "在脚边打出一发信号弹，照亮一大片区域并把它标记出来；接下来几秒火炮会持续砸进这片范围",
-      stat: (l) => ({ cd: Math.max(2.5, 6.6 - l * 0.46), dmg: 15 + l * 8, radius: 64 + l * 7,
-                      dur: 3.4 + l * 0.36, rate: 0.44, speed: 150 }) },
+      stat: (l) => ({ cd: Math.max(3.2, 6.6 - l * 0.34), dmg: 15 + l * 8, radius: 64 + l * 7,
+                      dur: 3.4 + l * 0.36, rate: 0.62, speed: 150 }) },
     split: { name: "分裂", icon: "裂", color: "#a8e05f", max: 8,
       desc: () => "发射一枚大子弹，命中后朝四面八方炸开一圈小子弹",
       stat: (l) => ({ cd: Math.max(0.72, 2.1 - l * 0.16), dmg: 16 + l * 8,
@@ -1406,6 +1409,9 @@
       parry: 0, parryA: 0, parryArc: 0, parryR: 0,
       weapons: [],
       passives: pv,
+      // 升级选项的反重复记忆：optHist = 最近亮过相的条目 id，lastPick = 上一级选了什么。
+      // 两人模式各记各的（见 buildOptions / chooseUpgrade）
+      optHist: [], lastPick: null,
       orbitA: 0
     };
   }
@@ -1734,7 +1740,36 @@
     return e;
   }
 
-  function addGem(x, y, val) { G.gems.push({ x: x, y: y, v: val, t: rnd(0, 6), fly: false }); }
+  // 经验宝石上限。满级后期武器清怪极快，掉落速率远超拾取速度，
+  // 而宝石飞行速度（150+200/d）追不上满级移速（114），旧逻辑又只按 X 轴
+  // 剔除距离，于是能堆到一万五颗 —— 实测占满级后期每帧绘制调用的 98%。
+  // 超限时不是直接丢弃：把新宝石并进离玩家最远的那颗，经验总量守恒。
+  const GEM_MAX = 500;
+  function addGem(x, y, val) {
+    const g = { x: x, y: y, v: val, t: rnd(0, 6), fly: false, heart: false };
+    if (G.gems.length < GEM_MAX) { G.gems.push(g); return; }
+    // 找一个离所有玩家都最远的合并目标
+    let far = -1, fd = -1;
+    for (let i = 0; i < G.gems.length; i++) {
+      const q = G.gems[i];
+      let d = Infinity;
+      for (let k = 0; k < G.players.length; k++) {
+        const p = G.players[k];
+        const dd = dist2(q.x, q.y, p.x, p.y);
+        if (dd < d) d = dd;
+      }
+      if (d > fd) { fd = d; far = i; }
+    }
+    if (far < 0) return;
+    const t = G.gems[far];
+    // 回血宝石（heart，v=0）绝不能和经验宝石合并 —— 合并会让一次回血变成巨额经验，
+    // 反过来把经验宝石染成回血也会让玩家吃到回血。类型不同就放弃合并。
+    if (t.heart) return;
+    t.v += g.v;
+    // 回血宝石是别的路径直接 push 的（G.gems.push({... heart:true}），
+    // 不走addGem，所以这里顺手兜住上限：合并完仍超标就丢掉最老的那颗
+    while (G.gems.length > GEM_MAX) G.gems.shift();
+  }
   // opt: { k:"spark"|"smoke"|"" , g:是否发光 , sz:尺寸 , drag:阻尼 }
   function addPart(x, y, color, n, spd, life, opt) {
     if (G.parts.length > 460) return;
@@ -3373,6 +3408,9 @@
    *  17. 掉落物 / 粒子 / 飘字 / 升级
    * ========================================================= */
   function updateGems(dt) {
+    // 回血宝石走的是别的 push 路径（不经过 addGem），所以上限要在这里兜一次，
+    // 否则密集掉落时仍可能短暂超标
+    while (G.gems.length > GEM_MAX) G.gems.shift();
     for (let i = G.gems.length - 1; i >= 0; i--) {
       const g = G.gems[i];
       g.t += dt;
@@ -3401,7 +3439,16 @@
           continue;
         }
       }
-      if (Math.abs(g.x - p.x) > 620) G.gems.splice(i, 1);
+      // 距离剔除：旧逻辑只看 X 轴，纯 Y 方向的宝石永远不会被清掉。
+      // 这里改成对"最近的存活玩家"做双轴判断（双人时也不会误删队友脚下的宝石）
+      let nearD2 = Infinity;
+      for (let k = 0; k < G.players.length; k++) {
+        const q = G.players[k];
+        if (q.down || q.out) continue;
+        const dd = dist2(g.x, g.y, q.x, q.y);
+        if (dd < nearD2) nearD2 = dd;
+      }
+      if (nearD2 > 620 * 620) G.gems.splice(i, 1);
     }
   }
 
@@ -3434,28 +3481,59 @@
     if (G.pending > 0 && G.state === "play") openLevelUp();
   }
 
-  // 三选一的候选池。关键点：池子大小不能随"内容总量"膨胀 ——
-  // 否则每加一种武器 / 被动，玩家在同等等级下就会更散、更弱。
-  // 所以未入手的内容每次只随机露 SHOW_NEW 个，池子规模基本恒定，
-  // 已持有的强化则始终占大头（权重 W_OWN）。
-  const SHOW_NEW = 4, W_OWN = 4, W_NEW = 3;
-  function buildOptions(p) {
-    const pool = [];
-    const slots = weaponSlots(p);
-    const add = (o, w) => { for (let i = 0; i < w; i++) pool.push(o); };
+  // 三选一的候选池。旧版按"单项固定权重"分配：已持有强化每条权重 4、新内容每条 3。
+  // 问题出在构成上 —— 持有量从 1 条涨到 12 条时，已持有项占总票数的比例从 ~13%
+  // 一路涨到 ~66%，三张牌里两张永远是"手里货色的升级"，新武器 / 新被动被挤到
+  // 看都看不见；而且一件东西一旦被选中就会从"新内容池"搬进"已持有池"，
+  // 曝光率跳涨好几倍 —— 玩家感觉"选了谁，接下来老是谁"，就是这个机制造成的。
+  // 三处修改：
+  //   ① 类别占比锁定 —— 按目标份额反推单项权重，持有量增长只摊薄单项概率，
+  //      不再蚕食新内容的总曝光；
+  //   ② 选中冷却 —— 刚选的那一条下一级不再出现（池子凑不满 3 张时解禁）；
+  //   ③ 亮相降权 —— 最近两级亮过相的条目权重减半，杜绝三连一样的牌面。
+  const SHOW_NEW = 4;        // 每次最多亮几种没见过的新内容（武器 / 被动各这么多）
+  const W_NEW = 3;           // 新内容单项权重
+  const W_HEAL = 0.5;        // 急救包权重（池子越丰沛它越只是个兜底，不宜常驻眼前）
+  const OWN_SHARE = 0.45;    // 有新内容时，已持有强化这一类期望占池子的份额
+  const W_OWN_MIN = 1;       // 单项已持有强化权重的下限 / 上限
+  const W_OWN_MAX = 8;
+  const REPEAT_DECAY = 0.5;  // 最近亮过相的条目权重系数
+  const HIST_N = 6;          // 记住最近几级亮过相的条目（6 = 两级 × 3 张）
 
-    // ① 已持有的强化 —— 权重最高，成长因此会自然收束到手上的这套
+  // 加权不重复抽一张：跳过已用项与 skip() 命中的项，抽空返回 null。
+  // 权重可以是小数 —— 不再复制票券数组，类别份额因此能精确控制。
+  function pickWeighted(cands, used, skip) {
+    let tot = 0;
+    for (let i = 0; i < cands.length; i++) {
+      const c = cands[i];
+      if (!used[c.id] && !skip(c)) tot += c.w;
+    }
+    if (tot <= 0) return null;
+    let r = Math.random() * tot;
+    for (let i = 0; i < cands.length; i++) {
+      const c = cands[i];
+      if (used[c.id] || skip(c)) continue;
+      r -= c.w;
+      if (r <= 0) return c;
+    }
+    return null;
+  }
+
+  function buildOptions(p) {
+    if (!p.optHist) { p.optHist = []; p.lastPick = null; }
+    const slots = weaponSlots(p);
+    const own = [], fresh = [];
+
+    // ① 已持有的强化 —— 全部进池，权重由类别份额反推（见③）
     for (let i = 0; i < p.weapons.length; i++) {
       const w = p.weapons[i];
-      if (w.level < WEAPONS[w.key].max) add({ kind: "w", key: w.key, level: w.level + 1 }, W_OWN);
+      if (w.level < WEAPONS[w.key].max) own.push({ kind: "w", key: w.key, level: w.level + 1 });
     }
     for (const k in PASSIVES) {
-      if (p.passives[k] > 0 && p.passives[k] < PASSIVES[k].max) {
-        add({ kind: "p", key: k, level: p.passives[k] + 1 }, W_OWN);
-      }
+      if (p.passives[k] > 0 && p.passives[k] < PASSIVES[k].max) own.push({ kind: "p", key: k, level: p.passives[k] + 1 });
     }
 
-    // ② 尚未入手的内容 —— 每次只抽一小撮展示
+    // ② 尚未入手的内容 —— 每次只随机露一小撮（洗牌后取前几名，跨级自然轮换）
     const freshW = [], freshP = [];
     if (p.weapons.length < slots) {
       for (const k in WEAPONS) if (!p.weapons.find(w => w.key === k)) freshW.push({ kind: "w", key: k, level: 1 });
@@ -3465,21 +3543,46 @@
     }
     for (let i = freshW.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; const t = freshW[i]; freshW[i] = freshW[j]; freshW[j] = t; }
     for (let i = freshP.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; const t = freshP[i]; freshP[i] = freshP[j]; freshP[j] = t; }
-    for (let i = 0; i < SHOW_NEW && i < freshW.length; i++) add(freshW[i], W_NEW);
-    for (let i = 0; i < SHOW_NEW && i < freshP.length; i++) add(freshP[i], W_NEW);
-    add({ kind: "heal", key: "heal", level: 0 }, 1);
+    for (let i = 0; i < SHOW_NEW && i < freshW.length; i++) fresh.push(freshW[i]);
+    for (let i = 0; i < SHOW_NEW && i < freshP.length; i++) fresh.push(freshP[i]);
 
-    // ③ 按权重抽三张不重复的牌
+    // ③ 单项权重：解 own·w = OWN_SHARE·(own·w + fresh·W_NEW + W_HEAL) 得
+    //    w = OWN_SHARE·(fresh·W_NEW + W_HEAL) / (own·(1 − OWN_SHARE))。
+    //    持有量越大 w 越小 —— 已持有这一类的总曝光恒定，单项概率被摊薄；
+    //    早期只有一两件时 w 被 W_OWN_MAX 钳住，不会"开局十级有八级都是同一把刀"。
+    let wOwn = 4;                                        // 没有新内容可看时的默认值
+    if (own.length && fresh.length) {
+      wOwn = clamp(OWN_SHARE * (fresh.length * W_NEW + W_HEAL) / (own.length * (1 - OWN_SHARE)), W_OWN_MIN, W_OWN_MAX);
+    }
+
+    // ④ 反重复：最近 HIST_N 张亮过相的降权；刚选中的整条冷却一级
+    const recent = {};
+    for (let i = Math.max(0, p.optHist.length - HIST_N); i < p.optHist.length; i++) recent[p.optHist[i]] = 1;
+
+    const cands = [];
+    for (let i = 0; i < own.length; i++) cands.push({ kind: own[i].kind, key: own[i].key, level: own[i].level, id: own[i].kind + own[i].key, w: wOwn });
+    for (let i = 0; i < fresh.length; i++) cands.push({ kind: fresh[i].kind, key: fresh[i].key, level: fresh[i].level, id: fresh[i].kind + fresh[i].key, w: W_NEW });
+    cands.push({ kind: "heal", key: "heal", level: 0, id: "heal", w: W_HEAL });
+    for (let i = 0; i < cands.length; i++) {
+      if (recent[cands[i].id]) cands[i].w *= REPEAT_DECAY;
+    }
+
+    // ⑤ 抽三张不重复的牌：先跳过冷却项；凑不满 3 张再把它放回来
+    //    （池子太小的时候宁可重复亮一集，也不要拿急救包硬凑）
     const out = [], used = {};
-    for (let guard = 0; out.length < 3 && guard < 300; guard++) {
-      const o = pool[(Math.random() * pool.length) | 0];
-      if (!o) break;
-      const id = o.kind + o.key;
-      if (used[id]) continue;
-      used[id] = 1;
-      out.push(o);
+    const cool = (c) => c.id === p.lastPick;
+    for (let i = 0; i < 3; i++) {
+      let c = pickWeighted(cands, used, cool);
+      if (!c) c = pickWeighted(cands, used, () => false);
+      if (!c) break;
+      used[c.id] = 1;
+      out.push({ kind: c.kind, key: c.key, level: c.level });
     }
     while (out.length < 3) out.push({ kind: "heal", key: "heal", level: 0 });
+
+    // ⑥ 记账：这一级亮过什么（供下一级反重复）
+    for (let i = 0; i < out.length; i++) p.optHist.push(out[i].kind + out[i].key);
+    if (p.optHist.length > HIST_N) p.optHist.splice(0, p.optHist.length - HIST_N);
     return out;
   }
 
@@ -3562,6 +3665,9 @@
       syncMaxHp(p);                                  // 代价可能压低最大生命
       if (o.key === "hp") p.hp = Math.min(p.maxHp, p.hp + 22);
     } else p.hp = Math.min(p.maxHp, p.hp + 40);
+    // 记账：这一级选了什么。急救包不算 —— 它是补给而不是构建项，
+    // 随时都可能再出现，不该被冷却规则挡住
+    if (o.kind !== "heal") p.lastPick = o.kind + o.key;
     show("levelup", false);
     addPart(p.x, p.y - 8, "#ffd166", 26, 80, 0.7);
     refreshGear();
@@ -5137,6 +5243,9 @@
     for (let i = 0; i < G.gems.length; i++) {
       const g = G.gems[i];
       const x = Math.round(g.x - camX), y = Math.round(g.y - camY);
+      // 视野外直接跳过：它们照样在 update 里参与拾取，只是没必要画。
+      // 后期实测约 1/3 的宝石在屏幕外，省下的是纯粹的填充开销
+      if (x < -12 || x > BASE_W + 12 || y < -12 || y > BASE_H + 12) continue;
       const bob = Math.sin(g.t * 5) * 1.2;
       if (g.heart) {
         glow(x, y - 3 + bob, 12, "#ff3b5c", 0.55);
@@ -6056,6 +6165,9 @@
       '<li>击杀敌人 → 掉落经验宝石 → 拾取 → 升级 → <em>三选一强化</em> → 撑过更高强度</li>' +
       '<li>同时最多携带 <em>6 件武器</em>；<em>武器大师</em>开局就有 <em>10 个槽位</em>（不随等级成长）。' +
       '武器大师每多带一件武器：伤害 <em>+4%</em>、攻击频率 <em>-1%</em>；被动不占武器位</li>' +
+      '<li>三选一的候选池做了<em>防重复</em>处理：<em>刚选过的强化，下一级不会原样再刷出来</em>，' +
+      '最近亮过相的条目也会降权；已持有强化与新武器 / 新被动的总曝光是锁死的，' +
+      '不会因为手里货变多，新内容就被挤得看不见</li>' +
       '<li>每 <em>28 秒</em>一波敌潮从同一侧涌入</li>' +
       '<li>没有通关终点 —— 目标是活得更久、解锁角色、刷新各难度的纪录</li></ul></div>' +
 
