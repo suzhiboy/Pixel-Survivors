@@ -854,12 +854,54 @@
    *  1. 音效（Web Audio 程序化生成，无外部资源）
    * ========================================================= */
   const Snd = {
-    ac: null, on: true,
+    ac: null, on: true, master: null, comp: null,
+    lastAt: Object.create(null),
+    _nb: null, gemStep: 0,
     // iOS / Safari 在没有用户手势时会把 AudioContext 建成 suspended 状态，
     // 不 resume 的话之后每一次 beep 都是静音的 —— 而且不报错，非常难查
     init() {
       if (!this.ac) { try { this.ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { this.on = false; } }
-      if (this.ac && this.ac.state === "suspended") this.ac.resume();
+      if (!this.ac) return;
+      if (this.ac.state === "suspended") this.ac.resume();
+      // 主总线 + 压缩器。后期一帧里可能同时触发十几个音效（命中 / 暴击 / 拾取 /
+      // 爆炸），不压限会直接削波，听起来就是"糊成一团"，爆音也伤耳朵。
+      if (!this.master) {
+        this.master = this.ac.createGain();
+        this.master.gain.value = 0.9;
+        this.comp = this.ac.createDynamicsCompressor();
+        this.comp.threshold.value = -16;
+        this.comp.knee.value = 10;
+        this.comp.ratio.value = 5;
+        this.comp.attack.value = 0.003;
+        this.comp.release.value = 0.15;
+        this.master.connect(this.comp);
+        this.comp.connect(this.ac.destination);
+      }
+    },
+    out() { return this.master || this.ac.destination; },
+    // 同一种音效在 ms 内只播一次。这不是审美选择而是性能选择：
+    // 后期 25 把武器每秒能打出上百次命中，每次都建振荡器 + 增益节点，
+    // 音频线程会先于渲染线程跪下（表现为整局声音断续、拖慢帧率）。
+    gate(key, ms) {
+      const t = performance.now();
+      const last = this.lastAt[key];
+      if (last !== undefined && t - last < ms) return false;
+      this.lastAt[key] = t;
+      return true;
+    },
+    // 噪声缓冲只烘一次，之后反复播放。旧实现每次 noise() 都 createBuffer
+    // （一次击杀就是几万个采样），是实打实的 GC 压力。
+    noiseBuf() {
+      if (this._nb) return this._nb;
+      const ac = this.ac, bufs = [], len = Math.floor(ac.sampleRate * 0.5);
+      for (let v = 0; v < 3; v++) {
+        const buf = ac.createBuffer(1, len, ac.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        bufs.push(buf);
+      }
+      this._nb = bufs;
+      return bufs;
     },
     beep(freq, dur, type, vol, slide) {
       if (!this.on || !this.ac) return;
@@ -869,33 +911,87 @@
       o.frequency.setValueAtTime(freq, t);
       if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + dur);
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol || 0.06, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(vol || 0.06, t + 0.008);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g); g.connect(ac.destination);
+      o.connect(g); g.connect(this.out());
       o.start(t); o.stop(t + dur + 0.02);
     },
-    noise(dur, vol) {
+    noise(dur, vol, freq) {
       if (!this.on || !this.ac) return;
       const ac = this.ac, t = ac.currentTime;
-      const len = Math.floor(ac.sampleRate * dur);
-      const buf = ac.createBuffer(1, len, ac.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
-      const src = ac.createBufferSource(); src.buffer = buf;
-      const g = ac.createGain(); g.gain.value = vol || 0.08;
-      const f = ac.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 1200;
-      src.connect(f); f.connect(g); g.connect(ac.destination);
-      src.start(t);
+      const src = ac.createBufferSource();
+      src.buffer = this.noiseBuf()[(Math.random() * 3) | 0];
+      src.playbackRate.value = rnd(0.9, 1.12);        // 变速：同一段噪声也不会听出重复
+      const g = ac.createGain();
+      g.gain.setValueAtTime(vol || 0.08, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      const f = ac.createBiquadFilter();
+      f.type = "lowpass"; f.frequency.value = freq || 1200;
+      src.connect(f); f.connect(g); g.connect(this.out());
+      src.start(t, rnd(0, Math.max(0, 0.5 - dur - 0.02)), dur);
+      src.stop(t + dur + 0.02);
     },
-    shoot() { this.beep(520, 0.06, "square", 0.03, 260); },
-    hit() { this.beep(180, 0.05, "square", 0.025, 120); },
-    crit() { this.beep(900, 0.07, "square", 0.04, 400); },
-    kill() { this.noise(0.09, 0.05); },
-    hurt() { this.beep(150, 0.16, "sawtooth", 0.07, 60); },
-    lvup() { this.beep(520, 0.09, "triangle", 0.07); setTimeout(() => this.beep(700, 0.09, "triangle", 0.07), 90); setTimeout(() => this.beep(940, 0.16, "triangle", 0.07), 180); },
-    gem() { this.beep(1200, 0.04, "sine", 0.03); },
+
+    /* ---------- 分层音效 ----------
+     * 打击音不再是一个单音，而是三层叠加：
+     *   低频（三角波，80~200Hz）→ 给"重量"
+     *   中频（方波，600~900Hz）  → 给"锐度"，也是能听清的部分
+     *   噪声（高通/低通）        → 给"材质"，让每次命中不完全是同一个电子音
+     * 每层的音量都很小，叠起来才成立；这样在几十次/秒的命中里也不会糊。
+     */
+    shoot() {
+      if (!this.gate("shoot", 42)) return;
+      const f = 500 + Math.random() * 110;
+      this.beep(f, 0.045, "square", 0.02, f * 0.5);
+    },
+    hit() {
+      if (!this.gate("hit", 30)) return;
+      const f = 145 + Math.random() * 45;
+      this.beep(f, 0.055, "triangle", 0.032, f * 0.42);            // 重量
+      this.beep(680 + Math.random() * 220, 0.022, "square", 0.011, 320); // 锐度
+      this.noise(0.032, 0.016, 2800);                              // 材质
+    },
+    crit() {
+      if (!this.gate("crit", 55)) return;
+      this.beep(230, 0.1, "square", 0.05, 70);                     // 闷响
+      this.beep(1350 + Math.random() * 260, 0.055, "sawtooth", 0.03, 600); // 金属裂声
+      this.noise(0.07, 0.032, 5600);                               // 高频碎屑
+    },
+    kill() {
+      if (!this.gate("kill", 55)) return;
+      this.noise(0.095, 0.035, 900);
+      this.beep(115, 0.11, "square", 0.024, 52);
+    },
+    hurt() {
+      this.beep(165, 0.17, "sawtooth", 0.075, 55);
+      this.noise(0.14, 0.05, 760);
+      this.beep(72, 0.2, "sine", 0.05, 44);
+    },
+    lvup() {
+      this.beep(520, 0.09, "triangle", 0.07);
+      setTimeout(() => this.beep(700, 0.09, "triangle", 0.07), 90);
+      setTimeout(() => this.beep(940, 0.16, "triangle", 0.07), 180);
+    },
+    // 拾取经验：五声音阶上行。连续吃一串宝石时听起来像一段旋律，
+    // 而不是同一个"嘀"重复几十遍 —— 这是同类游戏里最容易被忽略的爽点。
+    gem() {
+      if (!this.gate("gem", 40)) return;
+      const sc = [0, 2, 4, 7, 9, 12];
+      this.gemStep = (this.gemStep + 1) % sc.length;
+      const f = 880 * Math.pow(2, sc[this.gemStep] / 12);
+      this.beep(f, 0.05, "sine", 0.02, f * 1.03);
+    },
+    heart() {
+      if (!this.gate("heart", 90)) return;
+      this.beep(520, 0.1, "triangle", 0.05);
+      setTimeout(() => this.beep(780, 0.13, "triangle", 0.045), 55);
+    },
     boss() { this.beep(90, 0.6, "sawtooth", 0.09, 50); },
-    boom() { this.noise(0.24, 0.1); this.beep(80, 0.2, "square", 0.05, 40); },
+    boom() {
+      if (!this.gate("boom", 80)) return;
+      this.noise(0.26, 0.09, 520);
+      this.beep(84, 0.22, "sine", 0.055, 40);
+    },
     ice() { this.beep(1600, 0.12, "sine", 0.04, 700); },
     zap() { this.beep(1100, 0.1, "sawtooth", 0.035, 300); }
   };
@@ -1171,12 +1267,16 @@
       desc: () => "最大生命 +22 并立即回复" },
     magnet: { name: "磁石", icon: "磁", color: "#ffd166", max: 10,
       desc: () => "拾取范围 +30%" },
+    // 锐眼取消代价：它原先把"暴伤 -0.12/级"挂在自己身上，结果 10 级吃满后
+    // 暴伤被压到 1.0 倍（暴击几乎等于没暴击），必须再配致命才回本 ——
+    // 一条纯概率词条不该逼玩家去点另一条词条。"加暴击"这件事本身就是它该做的事。
     crit: { name: "锐眼", icon: "眼", color: "#c9a7ff", max: 10,
-      desc: () => "暴击率 +7%",
-      down: "暴伤 -0.12", pen: { critDmg: 0.12 } },
+      desc: () => "暴击率 +7%" },
+    // 扩张的代价从 -4% 降到 -2%：范围是个"越堆越不线性"的属性（13%/级是加算），
+    // 而伤害是全局乘区，两者本不该按 1:1 的价码结算
     area: { name: "扩张", icon: "扩", color: "#9fe8ff", max: 10,
       desc: () => "所有范围效果 +13%",
-      down: "伤害 -4%", pen: { dmg: 0.04 } },
+      down: "伤害 -2%", pen: { dmg: 0.02 } },
     armor: { name: "坚韧", icon: "韧", color: "#b0c4de", max: 10,
       desc: () => "受到的伤害 -6%",
       down: "移速 -3%", pen: { spd: 0.03 } },
@@ -1365,9 +1465,13 @@
     heroPick: ["ranger", "ranger"],   // 两个槽各选了什么角色
     enemies: [], bullets: [], ebullets: [], mines: [], sentries: [], gems: [], parts: [], texts: [], zones: [], beams: [],
     cam: { x: 0, y: 0 }, shake: 0, hurtT: 0,
+    hitStop: 0, lastFreeze: -9,
     spawnT: 0, bossT: 0, waveT: 0, bossWave: 0, bossCount: 0,
     pending: 0, options: []
   };
+  // 渲染排序的复用数组：每帧 G.enemies.slice() 会分配一份 N 元素的新数组，
+  // 满屏 300+ 敌人时这本身就是每秒上万次元素拷贝
+  const drawOrder = [];
 
   // 所有角色的初始生命统一到 80（角色修正 / 难度修正 / 被动代价都在此之上相乘）
   const BASE_HP = 80;
@@ -1437,7 +1541,9 @@
               (1 - (m.weaponRate || 0) * wExtra)),
       spd: 70 * (1 + 0.09 * s.speed) * (1 + (m.spd || 0)) * (1 - (pen.spd || 0)) * (mm.pspd || 1),
       magnet: 42 * (1 + 0.30 * s.magnet) * (1 + (m.magnet || 0)) * (1 - (pen.magnet || 0)),
-      crit: clamp(0.05 + 0.07 * s.crit + (m.crit || 0) - (pen.crit || 0), 0, 0.85),
+      // 初始暴击 10%（原 5%）：让"暴击"从开局就是一个能看见的机制，
+      // 而不是要等到点了锐眼才开始偶尔蹦一下
+      crit: clamp(0.10 + 0.07 * s.crit + (m.crit || 0) - (pen.crit || 0), 0, 0.85),
       critDmg: Math.max(1, 2 + 0.5 * s.critDmg + (m.critDmg || 0) - (pen.critDmg || 0)),
       armor: armor,
       // 闪避：概率性完全免伤。上限 60%，避免后期变成无敌
@@ -1487,6 +1593,7 @@
     G.mines.length = 0; G.sentries.length = 0; G.gems.length = 0; G.parts.length = 0;
     G.texts.length = 0; G.zones.length = 0; G.beams.length = 0;
     G.spawnT = 0; G.bossT = 0; G.waveT = 0; G.bossWave = 0; G.bossCount = 0; G.shake = 0; G.hurtT = 0;
+    G.hitStop = 0; G.lastFreeze = -9;
     G.pending = 0; G.options.length = 0;
     G.cam.x = 0; G.cam.y = 0;
     for (let i = 0; i < G.players.length; i++) {
@@ -1575,15 +1682,20 @@
       a.push(e);
     }
   }
-  function query(x, y, r) {
-    const out = [];
+  // 复用查询结果：separate() 每帧按敌人数各查一次邻居，满屏 340 个敌人
+  // 就是每秒两万多个临时数组 —— 比粒子更隐蔽的 GC 源。
+  // 传了 out 的调用方必须"查完立刻用、用完再查下一次"，不能把结果留在手里。
+  const QBUF = { sep: [], bullet: [], zone: [] };
+  function query(x, y, r, out) {
+    const res = out || [];
+    if (out) res.length = 0;
     const cx0 = Math.floor((x - r) / CELL), cx1 = Math.floor((x + r) / CELL);
     const cy0 = Math.floor((y - r) / CELL), cy1 = Math.floor((y + r) / CELL);
     for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
       const a = grid.get(gkey(cx, cy));
-      if (a) for (let i = 0; i < a.length; i++) out.push(a[i]);
+      if (a) for (let i = 0; i < a.length; i++) res.push(a[i]);
     }
-    return out;
+    return res;
   }
 
   /* =========================================================
@@ -1718,6 +1830,42 @@
   /* =========================================================
    *  10. 实体创建
    * ========================================================= */
+  /* ---- 对象池 ----------------------------------------------------------
+   * Canvas2D 本身不慢，慢的是"每帧 new 一批、又丢掉一批"：满级后期每秒
+   * 会生成上千个粒子 / 子弹 / 飘字，这些短命对象全部落在新生代，GC 一跑
+   * 就是一帧掉到 20ms。这里把死去对象的壳留下来复用，让 GC 在开局之后
+   * 基本无事可做。
+   *
+   * 关键纪律：复用时必须把该类型用到的字段全部重新赋值（包括"可选字段"）。
+   * 漏一个就会读到上一任主人的残留值 —— 这类 bug 极难复现，所以每个
+   * 工厂函数下面都显式列全字段。
+   * ------------------------------------------------------------------- */
+  const POOL = { bullets: [], parts: [], texts: [], gems: [], ebullets: [] };
+  const POOL_KEEP = 600;                  // 每类最多留这么多空壳（各类实体上限都在 500 以内）
+  const poolStats = { made: {}, reused: {} };
+  function poolTake(kind) {
+    const a = POOL[kind];
+    if (a.length) { poolStats.reused[kind] = (poolStats.reused[kind] || 0) + 1; return a.pop(); }
+    poolStats.made[kind] = (poolStats.made[kind] || 0) + 1;
+    return {};
+  }
+  function poolGive(kind, o) {
+    const a = POOL[kind];
+    if (a.length < POOL_KEEP) a.push(o);
+  }
+  // 调试/回归用：外部可以读到"真正 new 了多少次"
+  window.__poolStats = poolStats;
+  // 删除第 i 个实体：用"末尾交换"代替 splice。
+  // splice 每次都要把后面的元素整体前移，满屏几百个粒子时是实打实的开销；
+  // 这里的数组只用于遍历，顺序没有语义，交换删除是 O(1)。
+  // 倒序遍历时安全：换进来的末尾元素本来就已经处理过了。
+  function dropEntity(kind, arr, i) {
+    const o = arr[i], last = arr.length - 1;
+    if (i !== last) arr[i] = arr[last];
+    arr.pop();
+    if (kind) poolGive(kind, o);
+  }
+
   function spawnEnemy(type, x, y, hpMul, spdMul, dmgMul) {
     const isBoss = !!BOSSES[type];
     const d = isBoss ? BOSSES[type] : ENEMIES[type];
@@ -1746,7 +1894,9 @@
   // 超限时不是直接丢弃：把新宝石并进离玩家最远的那颗，经验总量守恒。
   const GEM_MAX = 500;
   function addGem(x, y, val) {
-    const g = { x: x, y: y, v: val, t: rnd(0, 6), fly: false, heart: false };
+    const g = poolTake("gems");
+    g.x = x; g.y = y; g.v = val; g.t = rnd(0, 6);
+    g.fly = false; g.heart = false; g.tgt = null;
     if (G.gems.length < GEM_MAX) { G.gems.push(g); return; }
     // 找一个离所有玩家都最远的合并目标
     let far = -1, fd = -1;
@@ -1760,38 +1910,42 @@
       }
       if (d > fd) { fd = d; far = i; }
     }
-    if (far < 0) return;
+    if (far < 0) { poolGive("gems", g); return; }
     const t = G.gems[far];
     // 回血宝石（heart，v=0）绝不能和经验宝石合并 —— 合并会让一次回血变成巨额经验，
     // 反过来把经验宝石染成回血也会让玩家吃到回血。类型不同就放弃合并。
-    if (t.heart) return;
+    if (t.heart) { poolGive("gems", g); return; }
     t.v += g.v;
+    poolGive("gems", g);
     // 回血宝石是别的路径直接 push 的（G.gems.push({... heart:true}），
     // 不走addGem，所以这里顺手兜住上限：合并完仍超标就丢掉最老的那颗
-    while (G.gems.length > GEM_MAX) G.gems.shift();
+    while (G.gems.length > GEM_MAX) poolGive("gems", G.gems.shift());
   }
   // opt: { k:"spark"|"smoke"|"" , g:是否发光 , sz:尺寸 , drag:阻尼 }
   function addPart(x, y, color, n, spd, life, opt) {
     if (G.parts.length > 460) return;
     opt = opt || {};
     for (let i = 0; i < n; i++) {
-      const a = rnd(0, TAU), s = rnd(spd * 0.3, spd);
-      G.parts.push({
-        x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
-        life: life || rnd(0.25, 0.5), max: life || 0.5,
-        c: color, sz: opt.sz || rndi(1, 2), k: opt.k || "", g: !!opt.g,
-        drag: opt.drag === undefined ? 0.93 : opt.drag
-      });
+      const a = opt.dir === undefined ? rnd(0, TAU) : opt.dir + rnd(-0.5, 0.5);
+      const s = rnd(spd * 0.3, spd);
+      const lf = life || rnd(0.25, 0.5);
+      const q = poolTake("parts");
+      q.x = x; q.y = y; q.vx = Math.cos(a) * s; q.vy = Math.sin(a) * s;
+      q.life = lf; q.max = lf;
+      q.c = color; q.sz = opt.sz || rndi(1, 2); q.k = opt.k || "";
+      q.g = !!opt.g; q.drag = opt.drag === undefined ? 0.93 : opt.drag;
+      G.parts.push(q);
     }
   }
   // 命中火花：普通为几点碎屑，暴击为金色爆闪 + 冲击环
-  function hitSpark(x, y, c, crit) {
+  // ang 有值时碎屑沿弹道飞溅（"从哪边打中"一眼可读），省略则向四周炸开
+  function hitSpark(x, y, c, crit, ang) {
     if (crit) {
-      addPart(x, y, "#ffd166", 5, 120, 0.3, { k: "spark", g: true, sz: 2, drag: 0.88 });
-      addPart(x, y, "#ffffff", 3, 80, 0.2, { k: "spark", g: true, sz: 2, drag: 0.88 });
+      addPart(x, y, "#ffd166", 5, 120, 0.3, { k: "spark", g: true, sz: 2, drag: 0.88, dir: ang });
+      addPart(x, y, "#ffffff", 3, 80, 0.2, { k: "spark", g: true, sz: 2, drag: 0.88, dir: ang });
       if (G.zones.length < 22) G.zones.push({ type: "ring", x: x, y: y, r: 20, c: "#ffd166", n: 14, t: 0, life: 0.26, hit: true });
     } else {
-      addPart(x, y, c, 3, 78, 0.24, { k: "spark", sz: 1, drag: 0.88 });
+      addPart(x, y, c, 3, 78, 0.24, { k: "spark", sz: 1, drag: 0.88, dir: ang });
     }
   }
   // 爆炸：火花 + 烟 + 冲击环
@@ -1804,7 +1958,10 @@
   }
   function addText(x, y, v, color, big) {
     if (G.texts.length > 46) return;
-    G.texts.push({ x: x, y: y, v: Math.round(v), life: 0.7, c: color || "#ffffff", big: !!big });
+    const t = poolTake("texts");
+    t.x = x; t.y = y; t.v = Math.round(v); t.life = 0.7;
+    t.c = color || "#ffffff"; t.big = !!big;
+    G.texts.push(t);
   }
   // 追踪弹的"燃料"：只锁定这么久，之后停转、掉速、熄灭。
   // 原来 5.5 秒全程锁定：实测玩家跑起来它一样追，直到计时结束 —— 既甩不掉，
@@ -1812,26 +1969,45 @@
   const HOME_T = 1.5;
   function addEBullet(x, y, vx, vy, dmg, type, turn) {
     const sp = Math.sqrt(vx * vx + vy * vy);
-    G.ebullets.push({
-      x: x, y: y, vx: vx, vy: vy, dmg: dmg, r: type === "snipe" ? 2 : 3,
-      type: type || "arrow", life: type === "homing" ? 2.4 : 4.5, spd: sp, turn: turn || 0, t: 0,
-      home: type === "homing" ? HOME_T : 0
-    });
+    const b = poolTake("ebullets");
+    b.x = x; b.y = y; b.vx = vx; b.vy = vy; b.dmg = dmg;
+    b.r = type === "snipe" ? 2 : 3;
+    b.type = type || "arrow";
+    b.life = type === "homing" ? 2.4 : 4.5;
+    b.spd = sp; b.turn = turn || 0; b.t = 0;
+    b.home = type === "homing" ? HOME_T : 0;
+    G.ebullets.push(b);
   }
 
   /* =========================================================
    *  11. 伤害与死亡
    * ========================================================= */
   let reapDepth = 0;                       // 收割的连锁代数上限
+  /* 顿帧（hit-stop）：打击感里性价比最高的一招。
+   * 命中那一瞬把整个游戏世界停 2~4 帧，眼睛会读成"这一下真的打到了"。
+   * 关键是必须带冷却 —— 后期每秒几十次命中，不加冷却就变成全程慢动作。
+   * 暂停只发生在 frame() 里，直接调 update() 的测试不受影响。 */
+  function freeze(t, force) {
+    if (G.state !== "play") return false;
+    if (!force && G.time - G.lastFreeze < 0.22) return false;
+    G.lastFreeze = G.time;
+    if (t > G.hitStop) G.hitStop = t;
+    return true;
+  }
   // by = 这一击算在谁头上（嗜血回血、收割连锁都记在他名下）。省略时算 1 号玩家
-  function damage(e, amount, crit, by) {
+  function damage(e, amount, crit, by, ang) {
     if (e.dead) return;
     amount *= (1 - (e.armor || 0));          // 护甲减伤
     e.hp -= amount;
-    e.flash = 0.12;
+    // 受击闪白：暴击闪得更久一点，让"这一下不一样"在敌人身上也能看见
+    e.flash = crit ? 0.17 : 0.1;
     addText(e.x, e.y - e.h * 0.55, amount, crit ? "#ffd166" : "#ffffff", crit && amount >= 40);
-    hitSpark(e.x, e.y - e.h * 0.45, crit ? "#ffd166" : e.color, crit);
-    if (crit) Snd.crit(); else Snd.hit();
+    hitSpark(e.x, e.y - e.h * 0.45, crit ? "#ffd166" : e.color, crit, ang);
+    if (crit) {
+      Snd.crit();
+      // 暴击额外给一点镜头震动与顿帧。只在冷却允许时给，避免持续抖动
+      if (freeze(0.032)) G.shake = Math.max(G.shake, 2.4);
+    } else Snd.hit();
     if (e.hp <= 0) {
       e.dead = true;
       G.kills++;
@@ -1855,7 +2031,12 @@
         }
       }
       addGem(e.x, e.y, e.exp);
-      if (!e.isBoss && Math.random() < 0.035) G.gems.push({ x: e.x + rnd(-4, 4), y: e.y + rnd(-4, 4), v: 0, heart: true, t: 0, fly: false });
+      if (!e.isBoss && Math.random() < 0.035) {
+        const hg = poolTake("gems");
+        hg.x = e.x + rnd(-4, 4); hg.y = e.y + rnd(-4, 4); hg.v = 0;
+        hg.heart = true; hg.t = 0; hg.fly = false; hg.tgt = null;
+        G.gems.push(hg);
+      }
       // 嗜血：击杀回血，但受每秒上限约束
       const vp = by || G.players[0];
       const stk = ST(vp);
@@ -1884,7 +2065,8 @@
       if (e.isBoss) {
         G.bossCount = Math.max(0, G.bossCount - 1);
         G.bossKills++;
-        G.shake = 12;
+        G.shake = 14;
+        freeze(0.16, true);                  // BOSS 倒下必须有明显的"世界停一拍"
         for (let i = 0; i < 8; i++) addGem(e.x + rnd(-22, 22), e.y + rnd(-22, 22), 25);
         Snd.boom(); toast("BOSS 击破");
       }
@@ -1920,8 +2102,9 @@
     amount *= (1 - st.armor) * st.taken;
     p.hp -= amount;
     p.inv = 0.7;
-    G.shake = 6;
-    G.hurtT = 0.34;
+    G.shake = 8;
+    G.hurtT = 0.38;
+    freeze(0.075);                 // 挨打要"卡一下"，这是受伤反馈的一半
     Snd.hurt();
     addPart(p.x, p.y - 8, "#ff3b5c", 7, 60);
     // 荆棘：把伤害反弹给贴身的敌人
@@ -2243,6 +2426,26 @@
     return best || G.players[0];
   }
 
+  /* 玩家子弹工厂。池化最怕"上一任的残留字段"：比如上一发是回旋镖，
+   * 残留 back=true 会让下一发普通子弹刚出生就往回飞；残留 land 会把
+   * 毒雾区域带到新子弹身上。所以这里把 25 把武器用到的字段全部显式重置，
+   * 哪怕当前类型根本用不到 —— 这是池化必须付的成本。 */
+  function newBullet(type, x, y, vx, vy, dmg, pierce, life, r) {
+    const b = poolTake("bullets");
+    b.type = type; b.x = x; b.y = y; b.vx = vx; b.vy = vy;
+    b.dmg = dmg; b.pierce = pierce; b.life = life; b.r = r;
+    b.spin = 0; b.radius = 0; b.spd = 0; b.t = 0;
+    b.ox = 0; b.oy = 0; b.maxD = 0; b.back = false;
+    b.fuse = 0; b.drag = 1; b.col = "#ffffff"; b.land = null;
+    b.count = 0; b.sdmg = 0; b.sspeed = 0; b.rate = 0;
+    b.own = 0;
+    if (!b.hit) b.hit = [];
+    b.hit.length = 0;
+    G.bullets.push(b);
+    return b;
+  }
+  function dropBullet(i) { dropEntity("bullets", G.bullets, i); }
+
   function fireWeapon(p, slot, st) {
     const s = WEAPONS[slot.key].stat(slot.level);
     const dmg = s.dmg * st.dmgMul;
@@ -2254,7 +2457,7 @@
         let a = p.face > 0 ? 0 : Math.PI;
         if (tgt) a = Math.atan2(tgt.y - (p.y - 8), tgt.x - p.x);
         a += (i - (s.count - 1) / 2) * 0.16;
-        G.bullets.push({ type: "knife", x: p.x, y: p.y - 8, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed, dmg: dmg, pierce: s.pierce + st.pierce, life: 1.4, r: 3, hit: [] });
+        newBullet("knife", p.x, p.y - 8, Math.cos(a) * s.speed, Math.sin(a) * s.speed, dmg, s.pierce + st.pierce, 1.4, 3);
       }
       Snd.shoot();
     } else if (slot.key === "shuriken") {
@@ -2272,19 +2475,21 @@
         const a = i < tg.length
           ? Math.atan2(tg[i].y - my, tg[i].x - p.x)
           : base + ((i - tg.length) / Math.max(1, rest)) * TAU;
-        G.bullets.push({ type: "shuriken", x: p.x, y: p.y - 8, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed, dmg: dmg, pierce: s.pierce + st.pierce, life: 2.2, r: 4, spin: 0, hit: [] });
+        newBullet("shuriken", p.x, p.y - 8, Math.cos(a) * s.speed, Math.sin(a) * s.speed, dmg, s.pierce + st.pierce, 2.2, 4);
       }
       Snd.shoot();
     } else if (slot.key === "fire") {
       const tgt = nearestEnemy(p.x, p.y - 8, 320);
       let a = p.face > 0 ? 0 : Math.PI;
       if (tgt) a = Math.atan2(tgt.y - (p.y - 8), tgt.x - p.x);
-      G.bullets.push({ type: "fire", x: p.x, y: p.y - 8, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed, dmg: dmg, pierce: 1, life: 2.4, r: 5, radius: s.radius * area, hit: [] });
+      const fb = newBullet("fire", p.x, p.y - 8, Math.cos(a) * s.speed, Math.sin(a) * s.speed, dmg, 1, 2.4, 5);
+      fb.radius = s.radius * area;
       Snd.shoot();
     } else if (slot.key === "missile") {
       for (let i = 0; i < s.count; i++) {
         const a = rnd(0, TAU);
-        G.bullets.push({ type: "missile", x: p.x, y: p.y - 8, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed, dmg: dmg, pierce: 1, life: 3.2, r: 4, spd: s.speed, hit: [] });
+        const mb = newBullet("missile", p.x, p.y - 8, Math.cos(a) * s.speed, Math.sin(a) * s.speed, dmg, 1, 3.2, 4);
+        mb.spd = s.speed;
       }
       Snd.beep(660, 0.08, "triangle", 0.03, 900);
     } else if (slot.key === "boomerang") {
@@ -2293,7 +2498,8 @@
         let a = p.face > 0 ? 0 : Math.PI;
         if (tgt) a = Math.atan2(tgt.y - (p.y - 8), tgt.x - p.x);
         a += (i - (s.count - 1) / 2) * 0.5;
-        G.bullets.push({ type: "boomerang", x: p.x, y: p.y - 8, ox: p.x, oy: p.y - 8, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed, dmg: dmg, pierce: 99, life: 4, r: 5, spin: 0, maxD: s.dist, back: false, hit: [] });
+        const bb = newBullet("boomerang", p.x, p.y - 8, Math.cos(a) * s.speed, Math.sin(a) * s.speed, dmg, 99, 4, 5);
+        bb.ox = p.x; bb.oy = p.y - 8; bb.maxD = s.dist;
       }
       Snd.beep(430, 0.1, "square", 0.03, 620);
     } else if (slot.key === "bolt") {
@@ -2347,7 +2553,7 @@
       const dirA = aimAngle(p.x, my, 300, p);
       for (let i = 0; i < s.pellets; i++) {
         const a = dirA + (s.pellets > 1 ? (i / (s.pellets - 1) - 0.5) * s.spread : 0) + rnd(-0.04, 0.04);
-        G.bullets.push({ type: "pellet", x: p.x, y: my, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed, dmg: dmg, pierce: 1 + st.pierce, life: s.life, r: 2, hit: [] });
+        newBullet("pellet", p.x, my, Math.cos(a) * s.speed, Math.sin(a) * s.speed, dmg, 1 + st.pierce, s.life, 2);
       }
       addPart(p.x + Math.cos(dirA) * 10, my + Math.sin(dirA) * 10, "#ffb347", 4, 60, 0.18);
       Snd.beep(300, 0.1, "square", 0.05, 110);
@@ -2357,7 +2563,7 @@
       const my = p.y - 8;
       const dirA = aimAngle(p.x, my, 330, p);
       const a = dirA + rnd(-0.035, 0.035);
-      G.bullets.push({ type: "slug", x: p.x, y: my, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed, dmg: dmg, pierce: s.pierce + st.pierce, life: 1.1, r: 3, hit: [] });
+      newBullet("slug", p.x, my, Math.cos(a) * s.speed, Math.sin(a) * s.speed, dmg, s.pierce + st.pierce, 1.1, 3);
       addPart(p.x + Math.cos(dirA) * 12, my + Math.sin(dirA) * 12, "#ffe36b", 3, 70, 0.16);
       Snd.beep(560, 0.07, "square", 0.05, 190);
       spendAmmo(slot, s);
@@ -2384,28 +2590,23 @@
                      dmg: dmg, t: 0, life: 0.2, hit: false, col: s.col, col2: s.col2, col3: s.col3 });
       for (let i = 0; i < s.ball; i++) {
         const ba = a + (i - (s.ball - 1) / 2) * 0.15 + rnd(-0.03, 0.03);
-        G.bullets.push({ type: "baseball", x: p.x, y: my, vx: Math.cos(ba) * s.bspeed, vy: Math.sin(ba) * s.bspeed,
-                         dmg: s.bdmg * st.dmgMul, pierce: s.bpierce + st.pierce, life: 1.7, r: 4, spin: 0, hit: [] });
+        newBullet("baseball", p.x, my, Math.cos(ba) * s.bspeed, Math.sin(ba) * s.bspeed, s.bdmg * st.dmgMul, s.bpierce + st.pierce, 1.7, 4);
       }
       Snd.beep(300, 0.1, "square", 0.05, 560);
     } else if (slot.key === "toxic") {
       // 抛向最近敌人，落地／命中后砸出一片毒雾
       const my = p.y - 8;
       const a = aimAngle(p.x, my, 300, p) + rnd(-0.1, 0.1);
-      G.bullets.push({
-        type: "throw", x: p.x, y: my, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
-        r: 4, t: 0, spin: 0, fuse: 0.55, drag: 0.9, col: "#a8e05f",
-        land: { type: "poison", x: 0, y: 0, r: s.radius * area, dmg: dmg, tick: s.tick, dur: s.dur, t: 0, life: s.dur, cd: 0, hit: true }
-      });
+      const tb = newBullet("throw", p.x, my, Math.cos(a) * s.speed, Math.sin(a) * s.speed, 0, 0, 4, 4);
+      tb.fuse = 0.55; tb.drag = 0.9; tb.col = "#a8e05f";
+      tb.land = { type: "poison", x: 0, y: 0, r: s.radius * area, dmg: dmg, tick: s.tick, dur: s.dur, t: 0, life: s.dur, cd: 0, hit: true };
       Snd.beep(430, 0.09, "triangle", 0.03, 230);
     } else if (slot.key === "singularity") {
       const my = p.y - 8;
       const a = aimAngle(p.x, my, 320, p) + rnd(-0.06, 0.06);
-      G.bullets.push({
-        type: "throw", x: p.x, y: my, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
-        r: 5, t: 0, spin: 0, fuse: 0.6, drag: 0.9, col: "#b48cff",
-        land: { type: "pull", x: 0, y: 0, r: s.radius * area, dmg: dmg, pull: s.pull, t: 0, life: s.dur, hit: true }
-      });
+      const sb = newBullet("throw", p.x, my, Math.cos(a) * s.speed, Math.sin(a) * s.speed, 0, 0, 4, 5);
+      sb.fuse = 0.6; sb.drag = 0.9; sb.col = "#b48cff";
+      sb.land = { type: "pull", x: 0, y: 0, r: s.radius * area, dmg: dmg, pull: s.pull, t: 0, life: s.dur, hit: true };
       Snd.beep(200, 0.2, "sine", 0.04, 620);
     } else if (slot.key === "sentry") {
       // 场上炮台上限：名额不够就先拆掉最旧的那些
@@ -2415,7 +2616,10 @@
         const a = rnd(0, TAU), dd = rnd(8, 26);
         G.sentries.push({
           x: p.x + Math.cos(a) * dd, y: p.y + Math.sin(a) * dd, a: rnd(0, TAU),
-          cd: 0.25, t: rnd(0, 6), dmg: s.dmg, range: s.range * area, rate: s.rate, life: s.dur
+          cd: 0.25, t: rnd(0, 6), dmg: s.dmg, range: s.range * area, rate: s.rate, life: s.dur,
+          // 归属必须在这里写死：下面的 while 会先 shift 掉旧炮台，
+          // 之后 tagOwner 用的 s0（开火前的长度）已经对不上新炮台的下标了
+          own: p.idx
         });
       }
       addPart(p.x, p.y - 4, "#c8d4e8", 10, 60, 0.35, { k: "smoke", sz: 2 });
@@ -2423,10 +2627,8 @@
     } else if (slot.key === "orb") {
       for (let i = 0; i < s.count; i++) {
         const a = rnd(0, TAU);
-        G.bullets.push({
-          type: "orb", x: p.x, y: p.y - 8, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
-          dmg: dmg, radius: s.radius * area, rate: s.rate, life: s.dur, t: 0, r: 5, spd: s.speed, hit: []
-        });
+        const ob = newBullet("orb", p.x, p.y - 8, Math.cos(a) * s.speed, Math.sin(a) * s.speed, dmg, 0, s.dur, 5);
+        ob.radius = s.radius * area; ob.rate = s.rate; ob.spd = s.speed;
       }
       Snd.beep(1400, 0.1, "sine", 0.03, 520);
     } else if (slot.key === "smg") {
@@ -2434,8 +2636,7 @@
       const my = p.y - 8;
       const dirA = aimAngle(p.x, my, 300, p);
       const a = dirA + rnd(-s.spread, s.spread);
-      G.bullets.push({ type: "smg", x: p.x, y: my, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
-                       dmg: dmg, pierce: s.pierce + st.pierce, life: 0.8, r: 2, hit: [] });
+      newBullet("smg", p.x, my, Math.cos(a) * s.speed, Math.sin(a) * s.speed, dmg, s.pierce + st.pierce, 0.8, 2);
       addPart(p.x + Math.cos(dirA) * 11, my + Math.sin(dirA) * 11, "#e8f0ff", 2, 70, 0.1, { k: "spark", sz: 1 });
       Snd.beep(720, 0.03, "square", 0.022, 380);
       spendAmmo(slot, s);
@@ -2443,19 +2644,15 @@
       // "在身边"打出去：引信很短，落点就在脚边，不会飞到敌人堆里去
       const my = p.y - 8;
       const a = (p.face > 0 ? 0 : Math.PI) + rnd(-0.9, 0.9);
-      G.bullets.push({
-        type: "throw", x: p.x, y: my, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
-        r: 4, t: 0, spin: 0, fuse: 0.3, drag: 0.86, col: "#ff4d4d",
-        land: { type: "flare", x: 0, y: 0, r: s.radius * area, dmg: dmg,
-                rate: s.rate, tick: 0, t: 0, life: s.dur, hit: true }
-      });
+      const fb2 = newBullet("throw", p.x, my, Math.cos(a) * s.speed, Math.sin(a) * s.speed, 0, 0, 4, 4);
+      fb2.fuse = 0.3; fb2.drag = 0.86; fb2.col = "#ff4d4d";
+      fb2.land = { type: "flare", x: 0, y: 0, r: s.radius * area, dmg: dmg, rate: s.rate, tick: 0, t: 0, life: s.dur, hit: true };
       Snd.beep(1100, 0.18, "sawtooth", 0.04, 320);
     } else if (slot.key === "split") {
       const my = p.y - 8;
       const a = aimAngle(p.x, my, 300, p);
-      G.bullets.push({ type: "split", x: p.x, y: my, vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
-                       dmg: dmg, sdmg: s.sdmg * st.dmgMul, count: s.count, sspeed: s.sspeed,
-                       pierce: 1 + st.pierce, life: 2.2, r: 6, spin: 0, hit: [] });
+      const spb = newBullet("split", p.x, my, Math.cos(a) * s.speed, Math.sin(a) * s.speed, dmg, 1 + st.pierce, 2.2, 6);
+      spb.sdmg = s.sdmg * st.dmgMul; spb.count = s.count; spb.sspeed = s.sspeed;
       Snd.beep(320, 0.12, "square", 0.04, 760);
     }
     /* orbit / aura / beam / flame 为持续型，在 updateWeapons 中结算 */
@@ -2600,10 +2797,9 @@
     const base = rnd(0, TAU);
     for (let k = 0; k < n; k++) {
       const a = base + (k / n) * TAU + rnd(-0.14, 0.14);
-      G.bullets.push({
-        type: "frag", x: b.x, y: b.y, vx: Math.cos(a) * b.sspeed, vy: Math.sin(a) * b.sspeed,
-        dmg: b.sdmg, pierce: 1 + (st ? st.pierce : 0), life: 0.62, r: 3, hit: [], own: b.own
-      });
+      const f = newBullet("frag", b.x, b.y, Math.cos(a) * b.sspeed, Math.sin(a) * b.sspeed,
+                          b.sdmg, 1 + (st ? st.pierce : 0), 0.62, 3);
+      f.own = b.own;
     }
     addPart(b.x, b.y, "#a8e05f", 12, 110, 0.26, { k: "spark", sz: 2, drag: 0.86 });
     if (G.zones.length < 40) G.zones.push({ type: "ring", x: b.x, y: b.y, r: 22, c: "#a8e05f", n: 14, t: 0, life: 0.22, hit: true });
@@ -2624,7 +2820,7 @@
         b.vx *= b.drag; b.vy *= b.drag;
         let land = b.t >= b.fuse;
         if (!land) {
-          const l = query(b.x, b.y, b.r + 12);
+          const l = query(b.x, b.y, b.r + 12, QBUF.bullet);
           for (let j = 0; j < l.length; j++) {
             const e = l[j];
             if (e.dead) continue;
@@ -2638,10 +2834,10 @@
           addPart(b.x, b.y, b.col, 10, 74, 0.34, { k: "spark", g: true, sz: 2, drag: 0.9 });
           if (G.zones.length < 40) G.zones.push({ type: "ring", x: b.x, y: b.y, r: b.land.r * 0.7, c: b.col, n: 16, t: 0, life: 0.28, hit: true });
           Snd.beep(250, 0.16, "square", 0.04, 90);
-          G.bullets.splice(i, 1);
+          dropBullet(i);
           continue;
         }
-        if (Math.abs(b.x - p.x) > 480 || Math.abs(b.y - p.y) > 360) { G.bullets.splice(i, 1); continue; }
+        if (Math.abs(b.x - p.x) > 480 || Math.abs(b.y - p.y) > 360) { dropBullet(i); continue; }
         continue;
       }
 
@@ -2665,7 +2861,7 @@
         }
         b.x += b.vx * dt; b.y += b.vy * dt;
         if (Math.random() < 0.5 * dt60) addPart(b.x + rnd(-6, 6), b.y + rnd(-6, 6), "#9fd8ff", 1, 16, 0.3, { k: "spark", sz: 1, drag: 0.9 });
-        const l = query(b.x, b.y, b.radius + 14);
+        const l = query(b.x, b.y, b.radius + 14, QBUF.bullet);
         for (let j = 0; j < l.length; j++) {
           const e = l[j];
           if (e.dead) continue;
@@ -2681,7 +2877,7 @@
         }
         if (b.life <= 0 || Math.abs(b.x - p.x) > 460 || Math.abs(b.y - p.y) > 340) {
           addPart(b.x, b.y, "#9fd8ff", 8, 60, 0.3, { k: "spark", g: true, sz: 2, drag: 0.9 });
-          G.bullets.splice(i, 1);
+          dropBullet(i);
         }
         continue;
       }
@@ -2718,7 +2914,7 @@
           b.vx += Math.cos(a) * 260 * dt; b.vy += Math.sin(a) * 260 * dt;
           const sp = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || 1;
           b.vx = b.vx / sp * 260; b.vy = b.vy / sp * 260;
-          if (d < 12) { G.bullets.splice(i, 1); continue; }
+          if (d < 12) { dropBullet(i); continue; }
         }
       } else if (b.type === "shuriken") b.spin += dt * 18;
       else if (b.type === "split") b.spin += dt * 7;
@@ -2727,29 +2923,36 @@
       b.x += b.vx * dt; b.y += b.vy * dt;
       if (b.life <= 0 || Math.abs(b.x - p.x) > 460 || Math.abs(b.y - p.y) > 340) {
         if (b.type === "split") splitBurst(b, p, st);   // 飞完射程也一样炸开
-        G.bullets.splice(i, 1); continue;
+        dropBullet(i); continue;
       }
 
-      const list = query(b.x, b.y, b.r + 12);
+      const list = query(b.x, b.y, b.r + 12, QBUF.bullet);
       for (let j = 0; j < list.length; j++) {
         const e = list[j]; if (e.dead || b.hit.indexOf(e) >= 0) continue;
         if (dist2(b.x, b.y, e.x, e.y) <= (b.r + e.r) * (b.r + e.r)) {
           b.hit.push(e);
           if (b.type === "fire") {
             explode(b.x, b.y, b.radius, b.dmg, "#ff8a3d", false, p);
-            G.bullets.splice(i, 1);
+            dropBullet(i);
             break;
           }
           if (b.type === "split") {
             // 大子弹本体也要算一次伤害，然后再散开
             const c2 = Math.random() < st.crit;
-            damage(e, b.dmg * (c2 ? st.critDmg : 1), c2, p);
+            damage(e, b.dmg * (c2 ? st.critDmg : 1), c2, p, Math.atan2(b.vy, b.vx));
             splitBurst(b, p, st);
-            G.bullets.splice(i, 1);
+            dropBullet(i);
             break;
           }
           const crit = Math.random() < st.crit;
-          damage(e, b.dmg * (crit ? st.critDmg : 1), crit, p);
+          damage(e, b.dmg * (crit ? st.critDmg : 1), crit, p, Math.atan2(b.vy, b.vx));
+          // 枪械也要让敌人"被打得一颤"：位移只有 1~2px，不改变平衡，
+          // 但连续扫射时敌群的抖动是能被眼睛读到的
+          if (!e.isBoss) {
+            const ha = Math.atan2(b.vy, b.vx);
+            e.knock = Math.max(e.knock, 0.05);
+            e.kx = Math.cos(ha) * 34; e.ky = Math.sin(ha) * 34;
+          }
           if (b.type === "knife" || b.type === "shuriken" || b.type === "boomerang" || b.type === "baseball") {
             // 棒球是"轰出去"的，击退明显更狠
             const hard = b.type === "baseball";
@@ -2757,7 +2960,7 @@
             const a = Math.atan2(b.vy, b.vx);
             e.kx = Math.cos(a) * (hard ? 170 : 60); e.ky = Math.sin(a) * (hard ? 170 : 60);
           }
-          if (b.pierce <= 1) { G.bullets.splice(i, 1); break; }
+          if (b.pierce <= 1) { dropBullet(i); break; }
           b.pierce--;
         }
       }
@@ -2805,11 +3008,10 @@
       if (t.cd > 0 || Math.abs(df) > 0.45) continue;  // 没转到位不开火
       t.cd = t.rate / st.rateMul;
       const a = t.a + rnd(-0.045, 0.045);
-      G.bullets.push({
-        type: "tracer", x: t.x + Math.cos(a) * 8, y: t.y - 6 + Math.sin(a) * 8,
-        vx: Math.cos(a) * 380, vy: Math.sin(a) * 380,
-        dmg: t.dmg * st.dmgMul, pierce: 1 + st.pierce, life: 0.72, r: 2, hit: [], own: t.own
-      });
+      const tb2 = newBullet("tracer", t.x + Math.cos(a) * 8, t.y - 6 + Math.sin(a) * 8,
+                            Math.cos(a) * 380, Math.sin(a) * 380,
+                            t.dmg * st.dmgMul, 1 + st.pierce, 0.72, 2);
+      tb2.own = t.own;
       addPart(t.x + Math.cos(a) * 10, t.y - 6 + Math.sin(a) * 10, "#c8d4e8", 2, 46, 0.12);
       Snd.beep(980, 0.035, "square", 0.018, 520);
     }
@@ -2939,7 +3141,7 @@
         z.cd -= dt;
         if (z.cd <= 0) {
           z.cd = z.tick / st.rateMul;
-          const list = query(z.x, z.y, z.r + 12);
+          const list = query(z.x, z.y, z.r + 12, QBUF.zone);
           for (let j = 0; j < list.length; j++) {
             const e = list[j]; if (e.dead) continue;
             if (dist2(z.x, z.y, e.x, e.y) <= (z.r + e.r) * (z.r + e.r)) {
@@ -2972,7 +3174,7 @@
 
       // 奇点：把范围内的敌人拽向中心
       if (z.type === "pull") {
-        const list = query(z.x, z.y, z.r + 46);
+        const list = query(z.x, z.y, z.r + 46, QBUF.zone);
         for (let j = 0; j < list.length; j++) {
           const e = list[j];
           if (e.dead) continue;
@@ -2993,7 +3195,7 @@
       if (!z.hit) {
         z.hit = true;
         if (z.type === "bolt") {
-          const list = query(z.x, z.y, z.r + 10);
+          const list = query(z.x, z.y, z.r + 10, QBUF.zone);
           for (let j = 0; j < list.length; j++) {
             const e = list[j]; if (e.dead) continue;
             if (dist2(z.x, z.y, e.x, e.y) <= (z.r + e.r) * (z.r + e.r)) {
@@ -3003,7 +3205,7 @@
           }
           addPart(z.x, z.y, "#8ad4ff", 12, 70);
         } else if (z.type === "frost") {
-          const list = query(z.x, z.y, z.r + 12);
+          const list = query(z.x, z.y, z.r + 12, QBUF.zone);
           for (let j = 0; j < list.length; j++) {
             const e = list[j]; if (e.dead) continue;
             if (dist2(z.x, z.y, e.x, e.y) <= (z.r + e.r) * (z.r + e.r)) {
@@ -3016,7 +3218,7 @@
           addPart(z.x, z.y, "#9fe8ff", 16, 60);
         } else if (z.type === "slash") {
           // 扇形判定：距离 + 夹角
-          const list = query(z.x, z.y, z.r + 14);
+          const list = query(z.x, z.y, z.r + 14, QBUF.zone);
           for (let j = 0; j < list.length; j++) {
             const e = list[j]; if (e.dead) continue;
             const dx = e.x - z.x, dy = e.y - z.y;
@@ -3028,7 +3230,7 @@
             // 贴近的敌人放宽角度容差，避免"明明贴着却劈空"
             if (Math.abs(df) > z.arc * 0.5 + Math.atan2(e.r, Math.max(6, d))) continue;
             const crit = Math.random() < st.crit;
-            damage(e, z.dmg * (crit ? st.critDmg : 1), crit, ow);
+            damage(e, z.dmg * (crit ? st.critDmg : 1), crit, ow, z.a);
             if (!e.isBoss) {
               const a = Math.atan2(dy, dx);
               e.knock = 0.14; e.kx = Math.cos(a) * 190; e.ky = Math.sin(a) * 190;
@@ -3043,7 +3245,7 @@
           addPart(z.x, z.y, "#ff4d4d", 20, 120, 0.4);
           Snd.beep(1500, 0.2, "sine", 0.045, 600);
           G.shake = Math.max(G.shake, 3);
-          const list = query(z.x, z.y, 46);
+          const list = query(z.x, z.y, 46, QBUF.zone);
           for (let j = 0; j < list.length; j++) {
             const e = list[j]; if (e.dead) continue;
             if (dist2(z.x, z.y, e.x, e.y) <= (46 + e.r) * (46 + e.r)) {
@@ -3066,7 +3268,7 @@
         G.zones.push({ type: "boom", x: z.x, y: z.y, r: z.r, t: 0, life: 0.24, hit: false, own: z.own });
         G.shake = Math.max(G.shake, 3.2);
         Snd.beep(120, 0.13, "square", 0.032, 46);
-        const sl = query(z.x, z.y, z.r + 12);
+        const sl = query(z.x, z.y, z.r + 12, QBUF.zone);
         for (let j = 0; j < sl.length; j++) {
           const e = sl[j]; if (e.dead) continue;
           if (dist2(z.x, z.y, e.x, e.y) <= (z.r + e.r) * (z.r + e.r)) {
@@ -3128,7 +3330,7 @@
       }
 
       b.x += b.vx * dt; b.y += b.vy * dt;
-      if (b.life <= 0 || Math.abs(b.x - p.x) > 520 || Math.abs(b.y - p.y) > 400) { G.ebullets.splice(i, 1); continue; }
+      if (b.life <= 0 || Math.abs(b.x - p.x) > 520 || Math.abs(b.y - p.y) > 400) { dropEntity("ebullets", G.ebullets, i); continue; }
 
       // 武士刀格挡：出刀之后那一瞬，身前扇形里的敌弹直接被斩落。
       // 判定用的是出刀时记下的角度与半径，所以它是"挥到了才算"，不是常驻护盾。
@@ -3147,7 +3349,7 @@
         addPart(b.x, b.y, "#ffffff", 4, 60, 0.22, { k: "spark", sz: 1, drag: 0.9 });
         G.shake = Math.max(G.shake, 1.6);
         Snd.beep(1560, 0.07, "square", 0.03, 780);
-        G.ebullets.splice(i, 1);
+        dropEntity("ebullets", G.ebullets, i);
         gone = true;
       }
       if (gone) continue;
@@ -3158,7 +3360,7 @@
         if (dist2(b.x, b.y, q.x, q.y - 6) <= (b.r + 6) * (b.r + 6)) {
           hurtPlayer(q, b.dmg);
           addPart(b.x, b.y, b.type === "orb" ? "#c9a7ff" : "#c9a86b", 6, 50);
-          G.ebullets.splice(i, 1);
+          dropEntity("ebullets", G.ebullets, i);
           break;
         }
       }
@@ -3171,7 +3373,7 @@
   function updateEnemies(dt) {
     for (let i = G.enemies.length - 1; i >= 0; i--) {
       const e = G.enemies[i];
-      if (e.dead) { G.enemies.splice(i, 1); continue; }
+      if (e.dead) { dropEntity(null, G.enemies, i); continue; }
       // 每个敌人各挑各的目标：谁近追谁。双人时"仇恨会换人"就是从这里来的
       const p = nearestPlayer(e.x, e.y);
       e.anim += dt * (e.type === "bat" ? 12 : 5);
@@ -3189,7 +3391,7 @@
         if (e.burnTick <= 0) {
           e.burnTick = 0.3;
           damage(e, (e.burnD || 0) * 0.3, false, e.burnBy || p);
-          if (e.dead) { G.enemies.splice(i, 1); continue; }
+          if (e.dead) { dropEntity(null, G.enemies, i); continue; }
         }
         if (e.burn <= 0) { e.burn = 0; e.burnD = 0; }
       }
@@ -3282,7 +3484,7 @@
       }
 
       if (Math.abs(e.x - p.x) > 640 || Math.abs(e.y - p.y) > 480) {
-        if (!e.isBoss) { G.enemies.splice(i, 1); continue; }
+        if (!e.isBoss) { dropEntity(null, G.enemies, i); continue; }
       }
     }
     separate();
@@ -3386,7 +3588,7 @@
   function separate() {
     for (let i = 0; i < G.enemies.length; i++) {
       const a = G.enemies[i];
-      const near = query(a.x, a.y, a.r + 14);
+      const near = query(a.x, a.y, a.r + 14, QBUF.sep);
       for (let j = 0; j < near.length; j++) {
         const b = near[j];
         if (b === a || b.dead) continue;
@@ -3410,7 +3612,7 @@
   function updateGems(dt) {
     // 回血宝石走的是别的 push 路径（不经过 addGem），所以上限要在这里兜一次，
     // 否则密集掉落时仍可能短暂超标
-    while (G.gems.length > GEM_MAX) G.gems.shift();
+    while (G.gems.length > GEM_MAX) poolGive("gems", G.gems.shift());
     for (let i = G.gems.length - 1; i >= 0; i--) {
       const g = G.gems[i];
       g.t += dt;
@@ -3429,13 +3631,13 @@
           if (g.heart) {
             p.hp = Math.min(p.maxHp, p.hp + 22);
             addText(p.x, p.y - 20, 22, "#7bff9e");
-            Snd.beep(760, 0.1, "triangle", 0.05);
+            Snd.heart();
           } else {
             gainExp(g.v * st.expMul * (runMod().exp || 1));
             addPart(g.x, g.y, g.v >= 25 ? "#ff5ce0" : "#8ad4ff", 3, 45, 0.28, { k: "spark", g: true, sz: 1, drag: 0.88 });
             Snd.gem();
           }
-          G.gems.splice(i, 1);
+          dropEntity("gems", G.gems, i);
           continue;
         }
       }
@@ -3448,7 +3650,7 @@
         const dd = dist2(g.x, g.y, q.x, q.y);
         if (dd < nearD2) nearD2 = dd;
       }
-      if (nearD2 > 620 * 620) G.gems.splice(i, 1);
+      if (nearD2 > 620 * 620) dropEntity("gems", G.gems, i);
     }
   }
 
@@ -3456,7 +3658,7 @@
     for (let i = G.parts.length - 1; i >= 0; i--) {
       const q = G.parts[i];
       q.life -= dt;
-      if (q.life <= 0) { G.parts.splice(i, 1); continue; }
+      if (q.life <= 0) { dropEntity("parts", G.parts, i); continue; }
       q.x += q.vx * dt; q.y += q.vy * dt;
       q.vx *= q.drag; q.vy *= q.drag;
       if (q.k === "smoke") { q.vy -= 14 * dt; q.sz = Math.min(6, q.sz + dt * 7); }
@@ -3464,7 +3666,7 @@
     for (let i = G.texts.length - 1; i >= 0; i--) {
       const t = G.texts[i];
       t.life -= dt; t.y -= 22 * dt;
-      if (t.life <= 0) G.texts.splice(i, 1);
+      if (t.life <= 0) dropEntity("texts", G.texts, i);
     }
   }
 
@@ -5380,7 +5582,11 @@
     if (dt > 0.05) dt = 0.05;
     dt60 = dt * 60;
     if (G.state !== "pause") updateMotes(dt);
-    if (G.state === "play") update(dt);
+    if (G.state === "play") {
+      // 顿帧：只冻结世界更新，渲染与 HUD 照常 —— 画面是"停住"，不是"掉帧"
+      if (G.hitStop > 0) G.hitStop = Math.max(0, G.hitStop - dt);
+      else update(dt);
+    } else if (G.hitStop > 0) G.hitStop = 0;   // 升级/暂停面板期间不该留着顿帧
     render();
     updateHUD();
     requestAnimationFrame(frame);
@@ -5520,8 +5726,11 @@
     drawZones(camX, camY);
     for (let i = 0; i < G.players.length; i++) drawOrbit(camX, camY, G.players[i]);
 
-    const list = G.enemies.slice().sort((a, b) => a.y - b.y);
-    for (let i = 0; i < list.length; i++) drawEnemy(list[i], camX, camY);
+    // 复用同一个数组排序，避免每帧 slice 出一份新的敌人列表
+    drawOrder.length = 0;
+    for (let i = 0; i < G.enemies.length; i++) drawOrder.push(G.enemies[i]);
+    drawOrder.sort((a, b) => a.y - b.y);
+    for (let i = 0; i < drawOrder.length; i++) drawEnemy(drawOrder[i], camX, camY);
 
     drawBullets(camX, camY);
     drawBeams(camX, camY);
@@ -6169,6 +6378,8 @@
       '最近亮过相的条目也会降权；已持有强化与新武器 / 新被动的总曝光是锁死的，' +
       '不会因为手里货变多，新内容就被挤得看不见</li>' +
       '<li>每 <em>28 秒</em>一波敌潮从同一侧涌入</li>' +
+      '<li>命中 / 暴击 / 击杀 / 受伤 / 拾取都有<em>各自独立的分层音效</em>：低频给重量、高频给锐度、噪声给材质。' +
+      '暴击还会触发极短的<em>顿帧</em>与镜头轻震 —— 打击感靠的是"停一拍"，不是把数字堆大</li>' +
       '<li>没有通关终点 —— 目标是活得更久、解锁角色、刷新各难度的纪录</li></ul></div>' +
 
       '<div class="sec"><h3>本地双人</h3><ul>' +
@@ -6189,7 +6400,7 @@
 
       '<div class="sec"><h3>战斗属性</h3><ul>' +
       '<li><em>伤害</em>：全局倍率，作用于所有武器</li>' +
-      '<li><em>暴击 / 暴伤</em>：暴击基础 2 倍，暴伤词条继续叠加倍率</li>' +
+      '<li><em>暴击 / 暴伤</em>：<em>初始暴击率 10%</em>，暴击基础 2 倍，暴伤词条继续叠加倍率</li>' +
       '<li><em>闪避</em>：概率<em>完全免伤</em>（方差大，靠运气，硬上限 60%）</li>' +
       '<li><em>护甲</em>：按比例减免受到的所有伤害（稳定可预期）。<em>上限 65%</em>，' +
       '拿了<em>铁壁</em>之后抬到 <em>85%</em>（1 级即解锁上限，之后每级再给 4% 护甲）</li>' +
@@ -6200,7 +6411,7 @@
       '<li>所有角色<em>初始生命统一为 ' + BASE_HP + ' 点</em>，角色的生命修正、地图/难度修正、被动代价都在这个基数上相乘</li>' +
       '<li><em>有代价的被动只是少数</em>：加成按级数涨，代价也按级数累积，而且是<em>全局结算</em>的 —— ' +
       '嗜血加回复但削最大生命、扩张加范围但削伤害、收割加爆炸但拖攻速。' +
-      '力量、疾风、疾靴、体魄、磁石、灵巧、穿透、荆棘、护盾、铁壁、反震这一批没有代价，可以放心堆</li>' +
+      '力量、疾风、疾靴、体魄、磁石、锐眼、灵巧、穿透、荆棘、护盾、铁壁、反震这一批没有代价，可以放心堆</li>' +
       '<li><em>被动上限统一 Lv10</em>，20 条被动用同一把尺子量，取舍只在于槽位和什么时候拿</li>' +
       '<li><em>武器一律白拿</em>：带哪把、带几把，只看槽位够不够，武器本身没有任何隐藏惩罚</li>' +
       '<li><em>同类代价会互相挤压</em>：同一种代价叠加时不是简单相加，而是越堆越钝。' +
