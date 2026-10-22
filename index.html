@@ -993,7 +993,13 @@
       this.beep(84, 0.22, "sine", 0.055, 40);
     },
     ice() { this.beep(1600, 0.12, "sine", 0.04, 700); },
-    zap() { this.beep(1100, 0.1, "sawtooth", 0.035, 300); }
+    zap() { this.beep(1100, 0.1, "sawtooth", 0.035, 300); },
+    // 破盾：高频"玻璃裂" + 低频碎壳 + 碎屑噪声，三层的目标和命中音一致
+    shieldBreak() {
+      this.beep(1800, 0.16, "sine", 0.05, 520);
+      this.beep(360, 0.12, "square", 0.028, 110);
+      this.noise(0.18, 0.05, 6200);
+    }
   };
 
   /* =========================================================
@@ -1421,6 +1427,14 @@
     hunter: { name: "追猎者", hp: 1250, spd: 30, dmg: 20, r: 15, w: 28, h: 28, exp: 280, color: "#ff9ecb", dark: "#8f2f5c", skill: "homing" }
   };
   const BOSS_ORDER = Object.keys(BOSSES);   // 从 BOSSES 派生，顺序与声明一致
+  // BOSS 血量基准与类型差异系数：
+  // 直接拿每只 BOSS 的原始 hp 当基数，会因为在轮换里 magma(1600) → lich(950)
+  // 出现"第 12 波比第 9 波还脆"的倒挂。这里把血量拆成
+  //   「波次基线 × 类型小幅差异」：类型只保留 ±8% 的体感差异，
+  //   波次基线严格单调，玩家读到的成长就不会倒退。
+  const BOSS_HP_REF = 1150;                 // 与首波巨魔领主一致，保证开局手感不变
+  const BOSS_HP_VAR = 0.3;                  // 原始 hp 差异只保留 30%
+  const BOSS_SHIELD_WAVE = 4;               // 第 4 波起 BOSS 带护盾
   const ENEMY_TXT = {
     slime: "最基础的杂兵，成群出现",
     bat: "飞行轨迹飘忽，来回穿插；基础速度不快，但很难甩干净",
@@ -1466,7 +1480,7 @@
     enemies: [], bullets: [], ebullets: [], mines: [], sentries: [], gems: [], parts: [], texts: [], zones: [], beams: [],
     cam: { x: 0, y: 0 }, shake: 0, hurtT: 0,
     hitStop: 0, lastFreeze: -9,
-    spawnT: 0, bossT: 0, waveT: 0, bossWave: 0, bossCount: 0,
+    spawnT: 0, bossT: 0, waveT: 0, bossWave: 0, bossCount: 0, bossHpPeak: 0,
     pending: 0, options: []
   };
   // 渲染排序的复用数组：每帧 G.enemies.slice() 会分配一份 N 元素的新数组，
@@ -1592,7 +1606,7 @@
     G.enemies.length = 0; G.bullets.length = 0; G.ebullets.length = 0;
     G.mines.length = 0; G.sentries.length = 0; G.gems.length = 0; G.parts.length = 0;
     G.texts.length = 0; G.zones.length = 0; G.beams.length = 0;
-    G.spawnT = 0; G.bossT = 0; G.waveT = 0; G.bossWave = 0; G.bossCount = 0; G.shake = 0; G.hurtT = 0;
+    G.spawnT = 0; G.bossT = 0; G.waveT = 0; G.bossWave = 0; G.bossCount = 0; G.bossHpPeak = 0; G.shake = 0; G.hurtT = 0;
     G.hitStop = 0; G.lastFreeze = -9;
     G.pending = 0; G.options.length = 0;
     G.cam.x = 0; G.cam.y = 0;
@@ -1881,8 +1895,18 @@
       isBoss: isBoss, armor: d.armor || 0, knock: 0, kx: 0, ky: 0,
       boomR: d.boomR || 0, boomDmg: (d.boomDmg || 0) * dmgv,
       touchCd: 0, slow: 0, slowT: 0, state: 0, stateT: 0, atkT: rnd(0.8, 2.4),
-      skill: d.skill || null, skillT: 2.5, bname: d.name || "", chargeX: 0, chargeY: 0
+      skill: d.skill || null, skillT: 2.5, bname: d.name || "", chargeX: 0, chargeY: 0,
+      // 护盾 / 破盾硬直 / 易伤窗口（普通怪恒为 0）
+      shield: 0, shieldMax: 0, stagger: 0, vulnT: 0
     };
+    // BOSS 护盾：第 4 波开始出现。比例随波次上涨，封顶 35%。
+    // 设计目的不是单纯加血，而是给后期 BOSS 一个"先破盾、再爆发"的阶段，
+    // 让玩家有明确的集火目标与输出窗口。
+    if (isBoss && G.bossWave >= BOSS_SHIELD_WAVE) {
+      const k = Math.min(0.35, 0.12 + (G.bossWave - BOSS_SHIELD_WAVE) * 0.03);
+      e.shieldMax = e.maxHp * k;
+      e.shield = e.shieldMax;
+    }
     G.enemies.push(e);
     if (isBoss) G.bossCount++;
     return e;
@@ -1994,15 +2018,42 @@
     if (t > G.hitStop) G.hitStop = t;
     return true;
   }
+  // 破盾：打断当前技能 + 0.7 秒硬直 + 3 秒易伤。
+  // 护盾如果只是"多一条血"，玩家只会觉得 BOSS 变肉；破盾后的窗口才是奖励。
+  function breakShield(e) {
+    e.shield = 0;
+    e.stagger = 0.7;
+    e.vulnT = 3;
+    e.state = 0; e.stateT = 0; e.skillT = Math.max(e.skillT, 2.5);
+    const cy = e.y - e.h * 0.45;
+    G.zones.push({ type: "ring", x: e.x, y: cy, r: 54, c: "#9fe8ff", n: 26, t: 0, life: 0.42, hit: true });
+    addPart(e.x, cy, "#9fe8ff", 26, 140, 0.55, { k: "spark", g: true, sz: 2, drag: 0.9 });
+    addPart(e.x, cy, "#ffffff", 10, 90, 0.35, { k: "spark", sz: 2, drag: 0.88 });
+    G.shake = Math.max(G.shake, 6);
+    freeze(0.05, true);
+    Snd.shieldBreak();
+  }
   // by = 这一击算在谁头上（嗜血回血、收割连锁都记在他名下）。省略时算 1 号玩家
   function damage(e, amount, crit, by, ang) {
     if (e.dead) return;
     amount *= (1 - (e.armor || 0));          // 护甲减伤
+    if (e.vulnT > 0) amount *= 1.25;         // 破盾后的易伤窗口
+    const dealt = amount;                     // 飘字显示"总伤害"，不因护盾吸收而变小
+    // 护盾优先吸收伤害
+    let shieldHit = 0;
+    if (e.shield > 0) {
+      shieldHit = Math.min(e.shield, amount);
+      e.shield -= shieldHit;
+      amount -= shieldHit;
+      if (e.shield <= 0.001) breakShield(e);
+    }
     e.hp -= amount;
     // 受击闪白：暴击闪得更久一点，让"这一下不一样"在敌人身上也能看见
     e.flash = crit ? 0.17 : 0.1;
-    addText(e.x, e.y - e.h * 0.55, amount, crit ? "#ffd166" : "#ffffff", crit && amount >= 40);
-    hitSpark(e.x, e.y - e.h * 0.45, crit ? "#ffd166" : e.color, crit, ang);
+    addText(e.x, e.y - e.h * 0.55, dealt,
+      shieldHit > 0 ? "#7fd8ff" : (crit ? "#ffd166" : "#ffffff"),
+      crit && dealt >= 40);
+    hitSpark(e.x, e.y - e.h * 0.45, shieldHit > 0 ? "#7fd8ff" : (crit ? "#ffd166" : e.color), crit, ang);
     if (crit) {
       Snd.crit();
       // 暴击额外给一点镜头震动与顿帧。只在冷却允许时给，避免持续抖动
@@ -2330,10 +2381,31 @@
       const kinds = BOSS_ORDER.length;
       const cnt = Math.min(6, 1 + Math.floor(G.bossWave / 1.5));
       const head = BOSS_ORDER[(G.bossWave - 1) % kinds];
+      // BOSS 血量成长：以首波为 1.0，之后按 hpCurve 的 0.4 次方增长。
+      // 为什么不是完整 hpCurve：杂兵靠"数量"摊薄，玩家不需要杀光；BOSS 只能硬啃。
+      // 实测（8 分钟成型的 6 武器 Lv8 配装 DPS≈1,300）：
+      //   完整曲线 → 第 9 波单只 144 秒；0.5 次方 → 38 秒；0.4 次方 → 25 秒。
+      // 0.4 同时把"BOSS/同波小怪"的比例从旧版的 3.8× 拉回 13~24×，
+      // 既不再塌陷，也不会变成血量墙。
+      // 想整体调强弱只改 BOSS_HP_K：0 = 完全不随时间成长，1 = 与杂兵同曲线。
+      const BOSS_HP_K = 0.4;
+      const bossHpMul = (1 + (G.bossWave - 1) * 0.9) *
+        Math.pow(hpCurve(t) / hpCurve(firstAt), BOSS_HP_K);
       for (let i = 0; i < cnt; i++) {
         const kind = BOSS_ORDER[(G.bossWave - 1 + i) % kinds];
         const q = spawnPos();
-        const be = spawnEnemy(kind, q.x, q.y, 1 + (G.bossWave - 1) * 0.9, 1 + (G.bossWave - 1) * 0.06, dmgMul);
+        // 血量 = BOSS_HP_REF × 波次基线 × 类型修正（±8%）
+        // spawnEnemy 内部按 bd.hp 起算，所以这里先换算成"相对该类型基础值"的倍率。
+        // 最后再套一层历史峰值保底：后期波次基数增长变慢时，轮换到低血类型
+        // 仍可能出现 1~2% 的倒挂，玩家一旦读到"后面的 BOSS 更脆"，成长感就断了。
+        const bd = BOSSES[kind];
+        const typeK = 1 + (bd.hp / BOSS_HP_REF - 1) * BOSS_HP_VAR;
+        let hpEff = BOSS_HP_REF * bossHpMul * typeK;
+        const floor = (G.bossHpPeak || 0) * 1.001;
+        if (hpEff < floor) hpEff = floor;
+        G.bossHpPeak = hpEff;
+        const hpArg = hpEff / bd.hp;
+        const be = spawnEnemy(kind, q.x, q.y, hpArg, 1 + (G.bossWave - 1) * 0.06, dmgMul);
         // 入场预告：在出生点炸开一圈该 BOSS 的配色
         G.zones.push({ type: "ring", x: be.x, y: be.y - 14, r: 40, c: be.color, n: 20, t: 0, life: 0.5, hit: true });
         addPart(be.x, be.y - 14, be.color, 16, 90, 0.6, { k: "spark", g: true, sz: 2, drag: 0.9 });
@@ -3378,6 +3450,7 @@
       const p = nearestPlayer(e.x, e.y);
       e.anim += dt * (e.type === "bat" ? 12 : 5);
       if (e.flash > 0) e.flash -= dt;
+      if (e.vulnT > 0) e.vulnT -= dt;          // 破盾易伤窗口
       if (e.touchCd > 0) e.touchCd -= dt;
       if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slow = 0; }
       const slowMul = 1 - clamp(e.slow, 0, 0.75);
@@ -3491,6 +3564,12 @@
   }
 
   function updateBoss(e, dt, dx, dy, d, slowMul, p) {
+    // 破盾硬直：不动、不放技能、不结算接触伤害 —— 这是破盾奖励的一部分
+    if (e.stagger > 0) {
+      e.stagger -= dt;
+      e.anim += dt * 2;
+      return;
+    }
     const mv = e.spd * slowMul;
     e.skillT -= dt;
 
@@ -4862,6 +4941,11 @@
 
     drawSpr(frames[((Math.floor(e.anim * 0.7) % 4) + 4) % 4], x, y + bob + 1, false, hit);
 
+    // 破盾后的易伤窗口：金色脉冲，提示"现在打它最疼"
+    if (e.vulnT > 0) {
+      glow(x, y - 12, 42, "#ffd166", 0.18 + 0.1 * Math.sin(G.time * 10));
+    }
+
     // 眼睛发光
     glow(x - 4, y - 22 + bob, 9, "#ffe36b", 0.5);
     glow(x + 4, y - 22 + bob, 9, "#ffe36b", 0.5);
@@ -4873,6 +4957,16 @@
 
     // 血条
     const bw = 52, bx = Math.round(x - bw / 2), by2 = Math.round(y - frames[0].h - 5 + bob);
+    // 护盾条：血条正上方一条青色能量条，吸收完才轮到下面掉血
+    if (e.shield > 0) {
+      const sk = clamp(e.shield / e.shieldMax, 0, 1);
+      const sy = by2 - 5;
+      px(bx - 1, sy - 1, bw + 2, 5, "#0c0818");
+      px(bx, sy, bw, 3, "#103a4a");
+      px(bx, sy, bw * sk, 3, "#7fd8ff");
+      px(bx, sy, bw * sk, 1, "#dff8ff");
+      glow(x, y - 12, 34 + sk * 8 + Math.sin(G.time * 4) * 2, "#7fd8ff", 0.16 + sk * 0.1);
+    }
     px(bx - 1, by2 - 1, bw + 2, 7, "#0c0818");
     px(bx, by2, bw, 5, "#3a0f22");
     const k = clamp(e.hp / e.maxHp, 0, 1);
@@ -6462,6 +6556,8 @@
 
       '<div class="sec"><h3>BOSS（' + Object.keys(BOSSES).length + ' 种）</h3><div class="cols">' + bRows + '</div>' +
       '<ul style="margin-top:8px"><li>首个 BOSS 在 <em>75 秒</em>出现，之后间隔逐波缩短（最短 32 秒），同场最多 <em>6 个</em></li>' +
+      '<li>第 <em>4 波</em>起 BOSS 带<em>护盾</em>：护盾厚度随波次上涨（最高 35% 最大生命，血条上方青色条）。' +
+      '破盾会打断它的技能并造成 <em>0.7 秒硬直</em>，之后 <em>3 秒</em>内它受到的伤害 <em>+25%</em></li>' +
       '<li>杀不掉的 BOSS 会一直追着你 —— 这是本作的时间上限</li></ul></div>' +
 
       '<div class="sec"><h3>难度曲线</h3><ul>' +
@@ -6470,6 +6566,8 @@
         '，600 秒时约 ×' + hpCurve(600).toFixed(0) + '</li>' +
       '<li><em>' + Math.round(LATE_T / 60) + ' 分钟起进入加档期</em>：生命曲线额外再提一档斜率，' +
         '同时敌人的伤害与移速也不再提前封顶，精英怪比例随时间走高</li>' +
+      '<li><em>BOSS 的血量也随时间成长</em>：以首波为基准，之后按同一条生命曲线的 <em>0.4 次方</em>变强，' +
+        '同时保留每波 +90% 的波次加成 —— 越往后的 BOSS 越肉，不会变成"血厚一点的杂兵"</li>' +
       '<li>升级所需经验同样<em>指数抬头</em>，后期成长会自然减速</li>' +
       '<li>后期拼的是你的成长能不能压住敌人的成长 —— 而它通常压不住</li></ul></div>';
   }
